@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 
 const nav = [
   { href: "/comment-ca-marche", label: "Comment ça marche" },
-  { href: "/fonctionnalites", label: "Fonctionnalités" },
   { href: "/tarifs", label: "Tarifs" },
-  { href: "/blog", label: "Ressources" },
+  { href: "/faq", label: "FAQ" },
 ];
 
 /** Entièrement rendu côté serveur : le menu mobile utilise <details>, sans JavaScript. */

@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FAQS, FaqList } from "@/components/marketing/faq";
+import { JsonLd } from "@/components/marketing/json-ld";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -61,32 +63,30 @@ const promises = [
   },
 ];
 
-const faqs = [
-  {
-    q: "Est-ce que c'est gratuit ?",
-    a: "Oui. Le diagnostic, les idées, le plan d'action et un quota mensuel d'échanges avec l'assistant sont gratuits. Une offre Pro viendra plus tard pour aller plus loin.",
-  },
-  {
-    q: "Je n'ai aucune idée de départ, est-ce pour moi ?",
-    a: "Oui, c'est même le point de départ le plus courant. L'échange part de ce que tu sais faire, de ce qui t'intéresse et de tes moyens réels.",
-  },
-  {
-    q: "Et si j'ai déjà une idée ?",
-    a: "Dis-le dès le début : Idevia t'aidera à la confronter à ton profil et à ton marché, puis à la tester avant d'engager de l'argent.",
-  },
-  {
-    q: "Idevia garantit-il que mon business va marcher ?",
-    a: "Non, et personne ne peut le garantir. Idevia t'aide à réfléchir, à tester tes hypothèses à petit coût et à décider. Il ne remplace pas un conseil juridique, comptable ou financier.",
-  },
-  {
-    q: "Que faites-vous de mes réponses ?",
-    a: "Elles servent uniquement à te conseiller. Elles sont chiffrées, ne sont jamais vendues, et l'IA ne reçoit ni ton nom ni ton email. Tu peux exporter ou supprimer tes données à tout moment.",
-  },
-];
+const base = process.env.APP_URL ?? "http://localhost:3000";
 
 export default function HomePage() {
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@graph": [
+            { "@type": "Organization", name: "Idevia", url: base, logo: `${base}/icons/icon-512.png` },
+            {
+              "@type": "SoftwareApplication",
+              name: "Idevia",
+              applicationCategory: "BusinessApplication",
+              operatingSystem: "Web, Android, iOS",
+              inLanguage: "fr",
+              url: base,
+              description:
+                "Trouve une idée de business adaptée à ton profil, vérifie-la sur le terrain et avance avec un plan de 30 jours et un coach.",
+              offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+            },
+          ],
+        }}
+      />
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div
@@ -163,8 +163,8 @@ export default function HomePage() {
               probabilité de réussite.
             </p>
             <Button asChild variant="link" className="mt-4 px-0">
-              <Link href="/fonctionnalites">
-                Tout ce que contient une fiche idée <ArrowRight aria-hidden />
+              <Link href="/comment-ca-marche">
+                Le parcours en détail <ArrowRight aria-hidden />
               </Link>
             </Button>
           </div>
@@ -203,22 +203,12 @@ export default function HomePage() {
         <h2 id="faq" className="text-3xl font-bold sm:text-4xl">
           Questions fréquentes
         </h2>
-        <div className="mt-8 divide-y divide-border rounded-card border border-border bg-card">
-          {faqs.map((item) => (
-            <details key={item.q} className="group px-5 py-1">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 font-semibold [&::-webkit-details-marker]:hidden">
-                {item.q}
-                <span
-                  aria-hidden
-                  className="text-xl text-muted-foreground transition-transform duration-200 group-open:rotate-45"
-                >
-                  +
-                </span>
-              </summary>
-              <p className="pb-4 text-muted-foreground">{item.a}</p>
-            </details>
-          ))}
+        <div className="mt-8">
+          <FaqList items={FAQS.slice(0, 5)} />
         </div>
+        <Link href="/faq" className="mt-5 inline-flex min-h-10 items-center gap-1.5 font-medium text-primary hover:underline">
+          Toutes les questions <ArrowRight className="size-4" aria-hidden />
+        </Link>
       </section>
 
       {/* CTA final */}

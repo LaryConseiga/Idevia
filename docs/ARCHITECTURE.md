@@ -574,4 +574,4 @@ Tests automatisés : l'utilisateur A tente de lire, modifier ou supprimer chaque
 | 4 | Validation, plan de lancement, tâches 30 jours, tableau de bord | Parcours principal opérationnel (livré le 27/10/2026 : page « Mon projet », vérification terrain) |
 | 5 | Assistant contextualisé + mémoire de projet + emails | Accompagnement continu (livré le 27/10/2026 : coach, mémoire, rappels) |
 | 6 | Admin : rôles, 2FA, analytics, entonnoir, coûts, blog | Back-office utilisable |
-| 7 | SEO, pages légales, tests e2e et sécurité, domaine name.com | MVP en production |
+| 7 | SEO, pages légales, tests e2e et sécurité, domaine name.com | MVP en production (préparé le 28/10/2026 : pages légales et publiques, export et suppression de compte, tests d'isolation et HTTP ; déploiement en attente du sous-domaine) |

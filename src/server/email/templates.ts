@@ -72,4 +72,13 @@ export const emails = {
       },
     ),
   }),
+  deletionScheduled: (input: { date: string; cancelUrl: string }) => ({
+    subject: "Ton compte Idevia sera supprimé",
+    ...layout(
+      "Suppression de ton compte programmée",
+      `Comme demandé, ton compte et toutes tes données seront effacés définitivement le ${input.date}. D'ici là, tu peux changer d'avis en un clic.`,
+      { label: "Annuler la suppression", url: input.cancelUrl },
+      "Si tu n'es pas à l'origine de cette demande, annule-la et change ton mot de passe.",
+    ),
+  }),
 };

@@ -26,7 +26,17 @@ const schema = z.object({
   DATA_ENCRYPTION_KEYS: z.string().min(1),
 
   RESEND_API_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().default("Idevia <onboarding@resend.dev>"),
+  /** Expéditeur. Par défaut : l'adresse SMTP en local, sinon l'adresse de test de Resend. */
+  EMAIL_FROM: z.string().optional(),
+
+  /**
+   * Tests en local uniquement : envoi par un compte mail ordinaire (Gmail : smtp.gmail.com, port 465,
+   * mot de passe d'application). Ignoré en production, où seul Resend est utilisé.
+   */
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().default(465),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
 
   UPSTASH_REDIS_REST_URL: z.url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),

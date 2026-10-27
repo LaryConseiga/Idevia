@@ -42,5 +42,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - name: Isolation entre comptes (RLS, vraie base)
+        run: npm run test:isolation
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run build

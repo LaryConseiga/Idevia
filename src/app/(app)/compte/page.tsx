@@ -1,7 +1,8 @@
 import { ChevronRight, Download, ShieldCheck, Trash2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
+import { Alert, Card } from "@/components/ui/card";
+import { getDeletion } from "@/server/dal/account";
 import { getEmailReminders } from "@/server/dal/reminders";
 import { requireUser } from "@/server/dal/session";
 import { RemindersToggle } from "./reminders-toggle";
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "Mon compte" };
 
 export default async function AccountPage() {
   const user = await requireUser("/compte");
-  const reminders = await getEmailReminders(user.id);
+  const [reminders, deletion] = await Promise.all([getEmailReminders(user.id), getDeletion(user.id)]);
   const links = [
     { href: "/compte/securite", icon: ShieldCheck, title: "Sécurité", text: "Double authentification, mot de passe" },
     { href: "/compte/donnees", icon: Download, title: "Mes données", text: "Exporter tout ce qu'Idevia sait de toi" },
@@ -20,6 +21,14 @@ export default async function AccountPage() {
   return (
     <>
       <h1 className="text-3xl font-bold">Mon compte</h1>
+      {deletion && (
+        <Alert tone="warning" className="mt-6">
+          Ton compte sera supprimé le {deletion.scheduledFor.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.{" "}
+          <Link href="/compte/suppression" className="font-semibold underline">
+            Annuler
+          </Link>
+        </Alert>
+      )}
       <Card className="mt-6 p-6">
         <dl className="grid gap-4 sm:grid-cols-2">
           <div>

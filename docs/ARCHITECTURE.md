@@ -527,6 +527,16 @@ Tests automatisés : l'utilisateur A tente de lire, modifier ou supprimer chaque
 - Statistiques agrégées par défaut. L'accès au contenu d'un projet exige une justification écrite et crée une
   entrée dans `admin_audit_logs`, visible par le super administrateur.
 
+**Mise en œuvre (28/10/2026)** :
+- Vue d'ensemble (tous les rôles) : comptes, entonnoir (diagnostic → idées → idée choisie → première étape →
+  terrain), activité du mois, appels IA par voie et par fonctionnalité (taux d'échec, tokens, latence), causes
+  d'échec, crédit Apify consommé. Uniquement des agrégats.
+- Utilisateurs (super_admin, support) : recherche, étape atteinte, suspension et réactivation (motif obligatoire,
+  sessions fermées), changement de rôle (super_admin). Aucun contenu de projet n'est consultable.
+- Journal d'audit (super_admin) ; blog (super_admin, content) : Markdown rendu en éléments React (aucun HTML brut,
+  liens http(s) ou internes uniquement), brouillon ou publication, champs SEO, cache invalidé à l'enregistrement.
+- Premier administrateur : `npm run admin:promote -- email [rôle]`, puis activation de la 2FA (obligatoire).
+
 ### 8.6. RGPD et conservation
 
 | Donnée | Durée |
@@ -573,5 +583,5 @@ Tests automatisés : l'utilisateur A tente de lire, modifier ou supprimer chaque
 | 3 | Ingestion du catalogue + signaux de marché + génération d'idées | 3 idées personnalisées, sourcées, comparables |
 | 4 | Validation, plan de lancement, tâches 30 jours, tableau de bord | Parcours principal opérationnel (livré le 27/10/2026 : page « Mon projet », vérification terrain) |
 | 5 | Assistant contextualisé + mémoire de projet + emails | Accompagnement continu (livré le 27/10/2026 : coach, mémoire, rappels) |
-| 6 | Admin : rôles, 2FA, analytics, entonnoir, coûts, blog | Back-office utilisable |
+| 6 | Admin : rôles, 2FA, analytics, entonnoir, coûts, blog | Back-office utilisable (livré le 28/10/2026) |
 | 7 | SEO, pages légales, tests e2e et sécurité, domaine name.com | MVP en production (préparé le 28/10/2026 : pages légales et publiques, export et suppression de compte, tests d'isolation et HTTP ; déploiement en attente du sous-domaine) |

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-const PRIVATE_PAGES = ["/tableau-de-bord", "/idees", "/projet", "/assistant", "/compte", "/compte/donnees", "/compte/suppression"];
-const PUBLIC_PAGES = ["/", "/comment-ca-marche", "/tarifs", "/faq", "/contact", "/legal/conditions", "/legal/confidentialite", "/legal/mentions-legales"];
+const PRIVATE_PAGES = ["/tableau-de-bord", "/idees", "/projet", "/assistant", "/compte", "/compte/donnees", "/compte/suppression", "/admin", "/admin/utilisateurs"];
+const PUBLIC_PAGES = ["/", "/comment-ca-marche", "/tarifs", "/faq", "/contact", "/blog", "/legal/conditions", "/legal/confidentialite", "/legal/mentions-legales"];
 
 test.describe("espace privé", () => {
   for (const path of PRIVATE_PAGES) {

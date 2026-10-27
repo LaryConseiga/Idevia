@@ -7,6 +7,7 @@ const nav = [
   { href: "/comment-ca-marche", label: "Comment ça marche" },
   { href: "/tarifs", label: "Tarifs" },
   { href: "/faq", label: "FAQ" },
+  { href: "/blog", label: "Blog" },
 ];
 
 /** Entièrement rendu côté serveur : le menu mobile utilise <details>, sans JavaScript. */

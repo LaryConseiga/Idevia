@@ -91,3 +91,25 @@ export async function budgetAvailable(): Promise<boolean> {
   }
   return budgetCache.ok;
 }
+
+/** Crédit consommé ce mois-ci, pour le tableau de bord d'administration (null si indisponible). */
+export async function apifyUsage(): Promise<{ usedUsd: number; maxUsd: number; cycleEnd: string | null } | null> {
+  if (!env.APIFY_TOKEN) return null;
+  try {
+    const response = await fetch(`${API}/users/me/limits`, {
+      headers: { Authorization: `Bearer ${env.APIFY_TOKEN}` },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) return null;
+    const body = (await response.json()) as {
+      data?: { limits?: { maxMonthlyUsageUsd?: number }; current?: { monthlyUsageUsd?: number }; monthlyUsageCycle?: { endAt?: string } };
+    };
+    return {
+      usedUsd: body.data?.current?.monthlyUsageUsd ?? 0,
+      maxUsd: body.data?.limits?.maxMonthlyUsageUsd ?? 0,
+      cycleEnd: body.data?.monthlyUsageCycle?.endAt ?? null,
+    };
+  } catch {
+    return null;
+  }
+}

@@ -45,6 +45,7 @@ Trois modes, dans cet ordre de priorité :
 | `npm run db:app-role` | Crée le rôle applicatif `idevia_app` (sans BYPASSRLS) et écrit `DATABASE_APP_URL` |
 | `npm run ai:check` | Vérifie chaque fournisseur IA configuré (sans afficher les clés) |
 | `npm run icons` | Régénère les icônes PWA |
+| `npm run admin:promote -- email [rôle]` | Donne un rôle d'administration (super_admin par défaut) ; la 2FA est ensuite exigée pour /admin |
 
 ## Règles de sécurité du code
 

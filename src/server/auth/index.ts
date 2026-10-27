@@ -111,7 +111,13 @@ export const auth = betterAuth({
       },
     }),
     twoFactor({ issuer: "Idevia" }),
-    admin({ ac, roles, defaultRole: "user", adminRoles: [...ADMIN_ROLES] }),
+    admin({
+      ac,
+      roles,
+      defaultRole: "user",
+      adminRoles: [...ADMIN_ROLES],
+      bannedUserMessage: "Ce compte est suspendu.",
+    }),
     haveIBeenPwned({
       customPasswordCompromisedMessage:
         "Ce mot de passe apparaît dans des fuites de données connues. Choisis-en un autre.",

@@ -16,7 +16,8 @@
     "ai:check": "tsx --conditions=react-server --env-file=.env.local scripts/check-ai.mts",
     "db:app-role": "node --env-file=.env.local scripts/db/create-app-role.mjs",
     "test:isolation": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run -c vitest.isolation.config.mts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "admin:promote": "node --env-file-if-exists=.env.local scripts/db/promote-admin.mjs"
   },
   "dependencies": {
     "@neon/config": "^1.9.4",

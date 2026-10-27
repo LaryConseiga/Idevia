@@ -16,6 +16,7 @@ const messages: Record<string, string> = {
   INVALID_TWO_FACTOR_CODE: "Code incorrect. Vérifie l'heure de ton téléphone et réessaie.",
   INVALID_BACKUP_CODE: "Code de secours incorrect.",
   SESSION_NOT_FRESH: "Par sécurité, reconnecte-toi avant cette action.",
+  BANNED_USER: "Ce compte est suspendu. Si tu penses que c'est une erreur, écris-nous depuis la page Contact.",
 };
 
 export function authErrorMessage(error: { code?: string; status?: number; message?: string } | null | undefined) {

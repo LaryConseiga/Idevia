@@ -13,8 +13,8 @@ const columns = [
   {
     title: "Aide",
     links: [
+      { href: "/blog", label: "Blog" },
       { href: "/contact", label: "Contact" },
-      { href: "/diagnostic", label: "Commencer" },
     ],
   },
   {

@@ -4,7 +4,7 @@ import type { Portrait } from "@/server/diagnostic/engine";
 import type { ProfileState } from "@/server/diagnostic/profile";
 import type { Candidate, Judgement } from "./schemas";
 
-export const IDEAS_PROMPT_VERSION = "ideas-2026-10-27.1";
+export const IDEAS_PROMPT_VERSION = "ideas-2026-10-27.2";
 
 /** Profil résumé et pseudonymisé : c'est la seule chose que les modèles savent de la personne. */
 export function profileBrief(state: ProfileState, portrait: Omit<Portrait, "source"> | null): string {
@@ -160,14 +160,18 @@ Le ton :
   plateformes en ligne à Paris, groupes de la diaspora pour un pont entre deux pays… ;
 - si une démarche administrative est nécessaire dans son pays (statut d'auto-entrepreneur, déclaration, autorisation),
   mentionne-la simplement, sans faire peur ;
-- reprends les mots de la personne quand c'est naturel, sans la flatter.
+- reprends les mots de la personne quand c'est naturel, sans la flatter ;
+- tu ne connais pas son genre : aucun adjectif ou participe accordé à la personne (« prêt », « motivée »),
+  jamais de point médian ; écris « tu as tout pour », « ton envie de », « ta créativité ».
 
 Le plan : 4 à 5 étapes qui couvrent les 30 premiers jours. Chaque étape a une période (« Jours 1 à 3 »), un titre
 qui donne envie, une "story" de 2 à 4 phrases qui dit exactement quoi faire, avec qui, où et combien, puis un
 "milestone" : ce qu'elle aura obtenu à la fin. La première étape doit pouvoir démarrer sans dépenser d'argent.
 La dernière étape vise un premier client payant ou une première vente.
 "todayAction" : une seule action de moins de 30 minutes à faire aujourd'hui.
-"whyYou" : un paragraphe qui explique pourquoi cette idée lui correspond à elle ou lui, en citant le profil.
+"whyYou" : un paragraphe qui explique pourquoi CETTE idée lui correspond, en citant le profil. Ouvre sur un fait
+concret du profil lié à cette idée précise (une compétence, un atout, une remarque de l'entretien), jamais sur sa
+motivation générale : la personne lira trois fiches, elles ne doivent pas commencer pareil.
 "watchouts" : 2 ou 3 pièges réels, chacun avec une réponse concrète.
 
 Format :

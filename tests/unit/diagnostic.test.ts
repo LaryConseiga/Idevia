@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { createRouter, extractJson } from "@/server/ai/router";
-import type { Provider, ProviderId } from "@/server/ai/types";
+import { ProviderError, type Provider, type ProviderId } from "@/server/ai/types";
 import { scrubPersonalData } from "@/server/ai/scrub";
 import { buildPortrait, MAX_TURNS, MIN_TURNS, nextTurn, openingQuestion } from "@/server/diagnostic/engine";
 import { completeness, emptyProfile, requiredSatisfied } from "@/server/diagnostic/profile";
@@ -88,7 +88,7 @@ describe("entretien sans modèle (repli déterministe)", () => {
 describe("entretien piloté par le modèle", () => {
   it("applique l'analyse du modèle et pose sa question, avec « Je ne sais pas encore »", async () => {
     const generate = vi.fn(async () => ({
-      provider: "groq" as const,
+      provider: "groq_fast" as const,
       model: "test",
       data: {
         updates: {
@@ -150,7 +150,7 @@ describe("entretien piloté par le modèle", () => {
 
   it("refuse d'arrêter avant le minimum même si le modèle dit avoir fini", async () => {
     const generate = vi.fn(async () => ({
-      provider: "groq" as const,
+      provider: "groq_fast" as const,
       model: "t",
       data: { updates: {}, insights: [], contradictions: [], next: null, done: true },
     }));
@@ -164,6 +164,24 @@ describe("entretien piloté par le modèle", () => {
       generate: generate as never,
     });
     expect(result.next).not.toBeNull();
+  });
+});
+
+describe("minimum de questions", () => {
+  it("approfondit au lieu de conclure si tout est connu mais que le minimum n'est pas atteint", async () => {
+    const full = emptyProfile();
+    for (const d of Object.keys(full.slots) as (keyof typeof full.slots)[]) {
+      (full.slots as Record<string, unknown>)[d] = { value: {}, confidence: 3, source: "user" };
+    }
+    const q = openingQuestion(full).question;
+    const history = Array.from({ length: 5 }, (_, i) => ({ question: { ...q, id: `q${i}` }, answer: "réponse" }));
+    const generate = vi.fn(async () => ({
+      provider: "groq_fast" as const,
+      model: "t",
+      data: { updates: {}, insights: [], contradictions: [], next: null, done: true },
+    }));
+    const result = await nextTurn({ state: full, history, lastAnswer: answer({ text: "réponse" }), generate: generate as never });
+    expect(result.next?.question.id).toMatch(/^fb:deepen-/);
   });
 });
 
@@ -237,9 +255,11 @@ describe("pseudonymisation avant envoi au modèle", () => {
 describe("routeur LLM", () => {
   const provider = (id: ProviderId, apiKey?: string): Provider => ({ id, url: "", model: `${id}-m`, apiKey });
   const providers = {
-    groq: provider("groq", "k"),
+    groq_fast: provider("groq_fast", "k"),
+    groq_reasoning: provider("groq_reasoning", "k"),
     cerebras: provider("cerebras"),
     gemini: provider("gemini", "k"),
+    gemini_lite: provider("gemini_lite", "k"),
     openrouter: provider("openrouter", "k"),
   };
   const schema = z.object({ ok: z.literal(true) });
@@ -252,9 +272,9 @@ describe("routeur LLM", () => {
       .mockResolvedValueOnce({ content: '```json\n{"ok": true}\n```', inputTokens: 5, outputTokens: 2 });
     const router = createRouter({ providers, call, record });
     const result = await router.generate({ task: "interview", system: "", user: "", schema, timeoutMs: 5000 });
-    expect(result?.provider).toBe("gemini"); // cerebras sans clé est sauté
+    expect(result?.provider).toBe("gemini_lite"); // groq_fast renvoie du texte invalide, la voie suivante prend le relais
     expect(record).toHaveBeenCalledTimes(2);
-    expect(record.mock.calls[0][0]).toMatchObject({ provider: "groq", success: false, errorCode: "invalid_json" });
+    expect(record.mock.calls[0][0]).toMatchObject({ provider: "groq_fast", success: false, errorCode: "invalid_json" });
   });
 
   it("renvoie null quand tout échoue, puis ouvre le circuit du fournisseur défaillant", async () => {
@@ -266,6 +286,37 @@ describe("routeur LLM", () => {
     call.mockClear();
     await router.generate({ task: "interview", system: "", user: "", schema, timeoutMs: 5000 });
     expect(call).not.toHaveBeenCalled();
+  });
+
+  it("patiente et réessaie le même modèle quand la limite de débit se lève dans quelques secondes", async () => {
+    const sleep = vi.fn(async () => {});
+    const call = vi
+      .fn()
+      .mockRejectedValueOnce(new ProviderError("rate_limited", 3, 429))
+      .mockResolvedValueOnce({ content: '{"ok": true}', inputTokens: 1, outputTokens: 1 });
+    const router = createRouter({ providers, call, record: async () => {}, sleep });
+    const result = await router.generate({ task: "interview", system: "", user: "", schema, timeoutMs: 20000 });
+    expect(sleep).toHaveBeenCalledWith(3000);
+    expect(result?.provider).toBe("groq_fast");
+  });
+
+  it("passe à la voie suivante si l'attente annoncée est longue", async () => {
+    const sleep = vi.fn(async () => {});
+    const call = vi
+      .fn()
+      .mockRejectedValueOnce(new ProviderError("rate_limited", 60, 429))
+      .mockResolvedValueOnce({ content: '{"ok": true}', inputTokens: 1, outputTokens: 1 });
+    const router = createRouter({ providers, call, record: async () => {}, sleep });
+    const result = await router.generate({ task: "interview", system: "", user: "", schema, timeoutMs: 20000 });
+    expect(sleep).not.toHaveBeenCalled();
+    expect(result?.provider).toBe("gemini_lite");
+  });
+
+  it("lit le délai annoncé par Gemini quand son quota journalier est épuisé", async () => {
+    const { parseRetryDelay } = await import("@/server/ai/retry");
+    expect(parseRetryDelay("Please retry in 19h49m56.19s.")).toBe(19 * 3600 + 49 * 60 + 57);
+    expect(parseRetryDelay("Please retry in 2.5s")).toBe(3);
+    expect(parseRetryDelay("autre chose")).toBeNull();
   });
 
   it("extrait le JSON même entouré de texte", () => {

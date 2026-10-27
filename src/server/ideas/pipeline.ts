@@ -1,4 +1,4 @@
-import type { createRouter } from "@/server/ai/router";
+import { WRITER_CHAINS, type createRouter } from "@/server/ai/router";
 import type { Portrait } from "@/server/diagnostic/engine";
 import type { ProfileState } from "@/server/diagnostic/profile";
 import { generatorPrompt, judgePrompt, profileBrief, writerPrompt } from "./prompts";
@@ -146,7 +146,8 @@ export async function runIdeasPipeline(input: {
   const now = input.now ?? Date.now;
   const started = now();
   const brief = profileBrief(input.state, input.portrait);
-  const common = { userId: input.userId, schema: candidatesSchema, maxTokens: 2600 };
+  // Les modèles qui raisonnent consomment une partie du budget de sortie avant de répondre : on leur laisse de la marge.
+  const common = { userId: input.userId, schema: candidatesSchema, maxTokens: 5000 };
 
   // 1. Divergence
   const [anchored, bold] = await Promise.all([
@@ -155,14 +156,16 @@ export async function runIdeasPipeline(input: {
       ...generatorPrompt({ brief, state: input.state, angle: "ancrage", count: IDEAS_PER_GENERATOR }),
       ...common,
       temperature: 0.8,
-      timeoutMs: 45_000,
+      timeoutMs: 60_000,
+      attemptTimeoutMs: 35_000,
     }),
     input.generate({
       task: "ideation_alt",
       ...generatorPrompt({ brief, state: input.state, angle: "audace", count: IDEAS_PER_GENERATOR }),
       ...common,
       temperature: 1,
-      timeoutMs: 45_000,
+      timeoutMs: 60_000,
+      attemptTimeoutMs: 35_000,
     }),
   ]);
   // On alterne les deux sources pour que, sans juge, l'ordre reste équilibré.
@@ -181,8 +184,9 @@ export async function runIdeasPipeline(input: {
     schema: judgementSchema,
     userId: input.userId,
     temperature: 0.2,
-    maxTokens: 2000,
-    timeoutMs: 40_000,
+    maxTokens: 4000,
+    timeoutMs: 50_000,
+    attemptTimeoutMs: 30_000,
   });
 
   // 3. Sélection
@@ -196,12 +200,14 @@ export async function runIdeasPipeline(input: {
     picked.map((p, i) =>
       input.generate({
         task: "plan",
+        chain: WRITER_CHAINS[i],
         ...writerPrompt({ brief, state: input.state, candidate: p.candidate, judgement: p.judgement, rank: i + 1 }),
         schema: ideaContentSchema,
         userId: input.userId,
         temperature: 0.75,
-        maxTokens: 3200,
-        timeoutMs: 70_000,
+        maxTokens: 4000,
+        timeoutMs: 90_000,
+        attemptTimeoutMs: 45_000,
       }),
     ),
   );

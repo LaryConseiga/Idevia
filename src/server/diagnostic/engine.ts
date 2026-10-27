@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { createRouter } from "@/server/ai/router";
 import { countryByCode, inCountry } from "@/lib/countries";
-import { fallbackByKey, materialize, OPENING, pickFallback } from "./fallback";
+import { fallbackByKey, materialize, OPENING, pickDeepen, pickFallback } from "./fallback";
 import {
   addInsights,
   applyUpdates,
@@ -20,8 +20,11 @@ import { normalizeQuestion, rawQuestionSchema, type Answer, type Question } from
 
 export const MIN_TURNS = 8;
 export const MAX_TURNS = 18;
-const INTERVIEW_TIMEOUT_MS = 8_000;
-const PORTRAIT_TIMEOUT_MS = 25_000;
+// Groq gratuit : 8 000 tokens/minute par modèle ; le repli Gemini Lite répond en ~4,5 s. On lui en laisse le temps.
+const INTERVIEW_TIMEOUT_MS = 14_000;
+const INTERVIEW_ATTEMPT_MS = 8_000;
+const PORTRAIT_TIMEOUT_MS = 40_000;
+const PORTRAIT_ATTEMPT_MS = 22_000;
 
 type Generate = ReturnType<typeof createRouter>["generate"];
 
@@ -70,8 +73,10 @@ export async function nextTurn({ state, history, lastAnswer, generate, userId }:
     ...prompt,
     schema: turnOutputSchema,
     timeoutMs: INTERVIEW_TIMEOUT_MS,
+    attemptTimeoutMs: INTERVIEW_ATTEMPT_MS,
     temperature: 0.7,
-    maxTokens: 1400,
+    // Réponses observées : 350 à 500 tokens. Une marge plus large est décomptée du quota par minute de Groq.
+    maxTokens: 700,
     userId,
   });
 
@@ -102,7 +107,16 @@ export async function nextTurn({ state, history, lastAnswer, generate, userId }:
 
   const asked = history.map((h) => fallbackKeyOf(h.question)).filter((k): k is string => Boolean(k));
   const fallback = pickFallback(current, asked);
-  if (!fallback) return { state: current, next: null, usedModel: Boolean(result) };
+  if (!fallback) {
+    // Plus rien à combler mais minimum non atteint : on approfondit plutôt que de conclure trop tôt.
+    const deepen = answered < MIN_TURNS ? pickDeepen(asked) : null;
+    if (!deepen) return { state: current, next: null, usedModel: Boolean(result) };
+    return {
+      state: current,
+      next: { question: materialize(deepen, `${FALLBACK_PREFIX}${deepen.key}`, current), source: "fallback" },
+      usedModel: Boolean(result),
+    };
+  }
   return {
     state: current,
     next: { question: materialize(fallback, `${FALLBACK_PREFIX}${fallback.key}`, current), source: "fallback" },
@@ -166,6 +180,7 @@ export async function buildPortrait(input: {
     ...portraitPrompt(input),
     schema: portraitSchema,
     timeoutMs: PORTRAIT_TIMEOUT_MS,
+    attemptTimeoutMs: PORTRAIT_ATTEMPT_MS,
     temperature: 0.8,
     maxTokens: 1500,
     userId: input.userId,

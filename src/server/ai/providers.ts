@@ -1,5 +1,6 @@
 import "server-only";
 import { env } from "@/server/env";
+import { parseRetryDelay } from "./retry";
 import { ProviderError, type ChatRequest, type ChatResult, type Provider, type ProviderId } from "./types";
 
 /**
@@ -7,31 +8,33 @@ import { ProviderError, type ChatRequest, type ChatResult, type Provider, type P
  * Un fournisseur sans clé est simplement ignoré par le routeur.
  */
 
+const GROQ = "https://api.groq.com/openai/v1/chat/completions";
+const GEMINI = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+
 export const providers: Record<ProviderId, Provider> = {
-  groq: {
-    id: "groq",
-    url: "https://api.groq.com/openai/v1/chat/completions",
-    model: env.AI_MODEL_GROQ,
+  groq_fast: { id: "groq_fast", url: GROQ, model: env.AI_MODEL_GROQ_FAST, apiKey: env.GROQ_API_KEY },
+  groq_reasoning: {
+    id: "groq_reasoning",
+    url: GROQ,
+    model: env.AI_MODEL_GROQ_REASONING,
     apiKey: env.GROQ_API_KEY,
+    extra: { reasoning_effort: "medium" },
   },
-  gemini: {
-    id: "gemini",
-    url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-    model: env.AI_MODEL_GEMINI,
-    apiKey: env.GEMINI_API_KEY,
-  },
-  cerebras: {
-    id: "cerebras",
-    url: "https://api.cerebras.ai/v1/chat/completions",
-    model: env.AI_MODEL_CEREBRAS,
-    apiKey: env.CEREBRAS_API_KEY,
-  },
+  // Les modèles Gemini 3 réfléchissent par défaut : effort réduit pour garder une latence acceptable.
+  gemini: { id: "gemini", url: GEMINI, model: env.AI_MODEL_GEMINI, apiKey: env.GEMINI_API_KEY, extra: { reasoning_effort: "low" } },
+  gemini_lite: { id: "gemini_lite", url: GEMINI, model: env.AI_MODEL_GEMINI_LITE, apiKey: env.GEMINI_API_KEY },
   openrouter: {
     id: "openrouter",
     url: "https://openrouter.ai/api/v1/chat/completions",
     model: env.AI_MODEL_OPENROUTER,
     apiKey: env.OPENROUTER_API_KEY,
     headers: { "HTTP-Referer": env.APP_URL, "X-Title": "Idevia" },
+  },
+  cerebras: {
+    id: "cerebras",
+    url: "https://api.cerebras.ai/v1/chat/completions",
+    model: env.AI_MODEL_CEREBRAS,
+    apiKey: env.CEREBRAS_API_KEY,
   },
 };
 
@@ -52,6 +55,7 @@ export async function callChat(provider: Provider, request: ChatRequest, signal:
         temperature: request.temperature,
         max_tokens: request.maxTokens,
         response_format: { type: "json_object" },
+        ...provider.extra,
       }),
     });
   } catch (error) {
@@ -60,8 +64,9 @@ export async function callChat(provider: Provider, request: ChatRequest, signal:
   }
 
   if (response.status === 429) {
-    const retryAfter = Number(response.headers.get("retry-after"));
-    throw new ProviderError("rate_limited", Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null, 429);
+    const header = Number(response.headers.get("retry-after"));
+    const retryAfter = Number.isFinite(header) && header > 0 ? header : parseRetryDelay(await response.text().catch(() => ""));
+    throw new ProviderError("rate_limited", retryAfter, 429);
   }
   if (!response.ok) throw new ProviderError("http", null, response.status);
 

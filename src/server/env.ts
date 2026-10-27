@@ -35,10 +35,15 @@ const schema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   OPENROUTER_API_KEY: z.string().optional(),
   CEREBRAS_API_KEY: z.string().optional(),
-  /** Identifiants de modèles : modifiables sans toucher au code quand un fournisseur fait évoluer son offre gratuite. */
-  AI_MODEL_GROQ: z.string().default("llama-3.3-70b-versatile"),
-  AI_MODEL_GEMINI: z.string().default("gemini-2.5-flash"),
-  AI_MODEL_OPENROUTER: z.string().default("meta-llama/llama-3.3-70b-instruct:free"),
+  /**
+   * Identifiants de modèles (vérifiés le 27/10/2026) : modifiables sans toucher au code quand un fournisseur
+   * fait évoluer son offre gratuite. `npm run ai:check` teste chaque voie.
+   */
+  AI_MODEL_GROQ_FAST: z.string().default("qwen/qwen3.8-27b"),
+  AI_MODEL_GROQ_REASONING: z.string().default("openai/gpt-oss-120b"),
+  AI_MODEL_GEMINI: z.string().default("gemini-3.5-flash"),
+  AI_MODEL_GEMINI_LITE: z.string().default("gemini-3.5-flash-lite"),
+  AI_MODEL_OPENROUTER: z.string().default("nvidia/nemotron-3-ultra-550b-a55b:free"),
   AI_MODEL_CEREBRAS: z.string().default("gpt-oss-120b"),
 
   APIFY_TOKEN: z.string().optional(),

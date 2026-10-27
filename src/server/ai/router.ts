@@ -11,19 +11,38 @@ import { ProviderError, type ChatMessage, type ChatRequest, type ChatResult, typ
 
 export type Task = "interview" | "portrait" | "ideation" | "ideation_alt" | "judge" | "plan" | "assistant";
 
+/**
+ * Choix mesurés le 27/10/2026 sur de vraies tâches en français (voir docs/ARCHITECTURE.md §2.1).
+ * - qwen (Groq) : ~0,5 s, idéal pour l'entretien ;
+ * - gpt-oss-120b (Groq) : raisonne bien, ~5 s, ~1 000 requêtes/jour mais tokens/minute limités ;
+ * - Gemini 3.5 Flash : la meilleure plume, mais 20 requêtes/jour en gratuit : réservé à ce qui compte le plus ;
+ * - Gemini Flash Lite : rapide, quota large, bon filet de sécurité ;
+ * - OpenRouter gratuit : lent et instable, dernier recours.
+ */
 export const CHAINS: Record<Task, ProviderId[]> = {
   // Latence d'abord : l'utilisateur attend la question suivante.
-  interview: ["groq", "cerebras", "gemini", "openrouter"],
-  // Qualité rédactionnelle d'abord.
-  portrait: ["gemini", "groq", "openrouter"],
-  // Idéation à deux voix : deux familles de modèles différentes pour diversifier les propositions.
-  ideation: ["gemini", "openrouter", "groq"],
-  ideation_alt: ["groq", "cerebras", "openrouter", "gemini"],
-  // Le juge n'est pas le générateur principal : on limite la complaisance d'un modèle envers ses propres idées.
-  judge: ["groq", "cerebras", "openrouter", "gemini"],
-  plan: ["gemini", "openrouter", "groq"],
-  assistant: ["groq", "gemini", "openrouter"],
+  interview: ["groq_fast", "gemini_lite", "groq_reasoning", "openrouter"],
+  portrait: ["groq_reasoning", "gemini", "gemini_lite"],
+  // Idéation à deux voix, deux familles de modèles différentes (Google et Alibaba) pour diversifier.
+  ideation: ["gemini_lite", "gemini", "openrouter"],
+  // qwen garde à gpt-oss-120b son quota de tokens/minute pour le juge qui suit immédiatement.
+  ideation_alt: ["groq_fast", "groq_reasoning", "openrouter"],
+  // Le juge raisonne, et n'est pas le générateur principal (on limite la complaisance envers ses propres idées).
+  judge: ["groq_reasoning", "gemini_lite", "openrouter"],
+  // Rédaction : voir WRITER_CHAINS (une voie différente par idée).
+  plan: ["groq_reasoning", "gemini_lite", "gemini"],
+  assistant: ["groq_fast", "gemini_lite", "groq_reasoning"],
 };
+
+/**
+ * Les trois fiches sont rédigées en parallèle sur trois voies différentes : on évite d'épuiser d'un coup
+ * le quota d'un seul modèle, et la meilleure plume disponible écrit l'idée n°1.
+ */
+export const WRITER_CHAINS: ProviderId[][] = [
+  ["gemini", "groq_reasoning", "gemini_lite"],
+  ["groq_reasoning", "gemini_lite", "gemini"],
+  ["gemini_lite", "groq_reasoning", "gemini"],
+];
 
 export type UsageRecord = {
   task: Task;
@@ -42,6 +61,7 @@ export type RouterDeps = {
   call: (provider: Provider, request: ChatRequest, signal: AbortSignal) => Promise<ChatResult>;
   record: (usage: UsageRecord) => Promise<void>;
   now?: () => number;
+  sleep?: (ms: number) => Promise<void>;
 };
 
 export type GenerateOptions<S extends z.ZodType> = {
@@ -51,6 +71,10 @@ export type GenerateOptions<S extends z.ZodType> = {
   schema: S;
   /** Budget de temps total pour toute la chaîne. */
   timeoutMs: number;
+  /** Plafond par tentative : un fournisseur lent ne doit pas consommer tout le budget avant le repli. */
+  attemptTimeoutMs?: number;
+  /** Ordre des voies propre à cet appel (sinon celui de la tâche). */
+  chain?: ProviderId[];
   temperature?: number;
   maxTokens?: number;
   userId?: string | null;
@@ -61,6 +85,8 @@ export type Generated<T> = { data: T; provider: ProviderId; model: string };
 const FAILURES_BEFORE_OPEN = 3;
 const OPEN_FOR_MS = 60_000;
 const MIN_ATTEMPT_MS = 1_500;
+/** Au-delà de cette attente, on passe tout de suite à la voie suivante. */
+const SHORT_WAIT_S = 8;
 
 /** Extrait l'objet JSON d'une réponse, y compris si le modèle l'a entouré de ```json. */
 export function extractJson(content: string): unknown {
@@ -75,6 +101,7 @@ export function extractJson(content: string): unknown {
 
 export function createRouter(deps: RouterDeps) {
   const now = deps.now ?? Date.now;
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const circuits = new Map<ProviderId, { failures: number; openUntil: number }>();
 
   const isOpen = (id: ProviderId) => (circuits.get(id)?.openUntil ?? 0) > now();
@@ -96,60 +123,72 @@ export function createRouter(deps: RouterDeps) {
       { role: "user", content: options.user },
     ];
 
-    for (const id of CHAINS[options.task]) {
+    for (const id of options.chain ?? CHAINS[options.task]) {
       const provider = deps.providers[id];
       if (!provider.apiKey || isOpen(id)) continue;
-      const remaining = deadline - now();
-      if (remaining < MIN_ATTEMPT_MS) break;
 
-      const startedAt = now();
-      let usage: Pick<UsageRecord, "inputTokens" | "outputTokens"> = { inputTokens: 0, outputTokens: 0 };
-      let errorCode: string | null = null;
-      let retryAfter: number | null = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const remaining = deadline - now();
+        if (remaining < MIN_ATTEMPT_MS) return null;
 
-      try {
-        const result = await deps.call(
-          provider,
-          { messages, temperature: options.temperature ?? 0.6, maxTokens: options.maxTokens ?? 1200 },
-          AbortSignal.timeout(remaining),
-        );
-        usage = { inputTokens: result.inputTokens, outputTokens: result.outputTokens };
-        const parsed = options.schema.safeParse(extractJson(result.content));
-        if (parsed.success) {
-          succeed(id);
-          await record({ ...usage, success: true, errorCode: null });
-          return { data: parsed.data, provider: id, model: provider.model };
-        }
-        errorCode = "invalid_output";
-      } catch (error) {
-        if (error instanceof ProviderError) {
-          errorCode = error.status ? `${error.code}_${error.status}` : error.code;
-          retryAfter = error.retryAfterSeconds;
-        } else if (error instanceof SyntaxError) {
-          errorCode = "invalid_json";
-        } else if (error instanceof DOMException && (error.name === "TimeoutError" || error.name === "AbortError")) {
-          errorCode = "timeout";
-        } else {
-          errorCode = "network";
-        }
-      }
+        const startedAt = now();
+        let usage: Pick<UsageRecord, "inputTokens" | "outputTokens"> = { inputTokens: 0, outputTokens: 0 };
+        let errorCode: string | null = null;
+        let retryAfter: number | null = null;
 
-      fail(id, retryAfter);
-      await record({ ...usage, success: false, errorCode });
+        const record = async (partial: Omit<UsageRecord, "task" | "provider" | "model" | "latencyMs" | "userId">) => {
+          try {
+            await deps.record({
+              ...partial,
+              task: options.task,
+              provider: id,
+              model: provider.model,
+              latencyMs: now() - startedAt,
+              userId: options.userId ?? null,
+            });
+          } catch {
+            // La traçabilité ne doit jamais casser l'expérience utilisateur.
+          }
+        };
 
-      async function record(partial: Omit<UsageRecord, "task" | "provider" | "model" | "latencyMs" | "userId">) {
         try {
-          await deps.record({
-            ...partial,
-            task: options.task,
-            provider: id,
-            model: provider.model,
-            latencyMs: now() - startedAt,
-            userId: options.userId ?? null,
-          });
-        } catch {
-          // La traçabilité ne doit jamais casser l'expérience utilisateur.
+          const result = await deps.call(
+            provider,
+            { messages, temperature: options.temperature ?? 0.6, maxTokens: options.maxTokens ?? 1200 },
+            AbortSignal.timeout(Math.min(remaining, options.attemptTimeoutMs ?? remaining)),
+          );
+          usage = { inputTokens: result.inputTokens, outputTokens: result.outputTokens };
+          const parsed = options.schema.safeParse(extractJson(result.content));
+          if (parsed.success) {
+            succeed(id);
+            await record({ ...usage, success: true, errorCode: null });
+            return { data: parsed.data, provider: id, model: provider.model };
+          }
+          errorCode = "invalid_output";
+        } catch (error) {
+          if (error instanceof ProviderError) {
+            errorCode = error.status ? `${error.code}_${error.status}` : error.code;
+            retryAfter = error.retryAfterSeconds;
+          } else if (error instanceof SyntaxError) {
+            errorCode = "invalid_json";
+          } else if (error instanceof DOMException && (error.name === "TimeoutError" || error.name === "AbortError")) {
+            errorCode = "timeout";
+          } else {
+            errorCode = "network";
+          }
         }
+
+        await record({ ...usage, success: false, errorCode });
+
+        // Limite de débit levée dans quelques secondes (fréquent chez Groq, limite par minute) :
+        // mieux vaut patienter et garder le meilleur modèle que passer à un moins bon.
+        const shortWait = retryAfter !== null && retryAfter <= SHORT_WAIT_S;
+        if (attempt === 0 && shortWait && deadline - now() > retryAfter! * 1000 + MIN_ATTEMPT_MS) {
+          await sleep(retryAfter! * 1000);
+          continue;
+        }
+        fail(id, retryAfter);
+        break;
       }
     }
     return null;

@@ -92,6 +92,23 @@ Tous les identifiants de modèles sont configurables par variable d'environnemen
 | Analytics | **First-party** (table `analytics_events`) : pas d'outil tiers | Aucun cookie, aucun coût |
 | Hébergement | Vercel Hobby **pendant le développement et la bêta** | ⚠️ Le plan Hobby interdit l'usage commercial : migrer (Vercel Pro, Netlify ou Cloudflare) **au moment d'activer le paiement**. Le code reste portable (aucune fonctionnalité propre à Vercel). |
 
+**Modèles retenus (mesurés le 27/10/2026, offres gratuites)** : une « voie » = un fournisseur + un modèle,
+chacune configurable par variable d'environnement (`AI_MODEL_*`) et testable avec `npm run ai:check`.
+
+| Voie | Modèle | Mesure | Quota gratuit constaté | Rôle |
+|---|---|---|---|---|
+| `groq_fast` | qwen/qwen3.8-27b | ~0,5 s | limite de tokens/minute | Entretien, second générateur d'idées |
+| `groq_reasoning` | openai/gpt-oss-120b | ~5 s, raisonne | ~1 000 req/jour, tokens/minute limités | Juge, portrait, rédaction |
+| `gemini` | gemini-3.5-flash | 9 à 30 s, meilleure plume | **20 requêtes/jour** | Rédaction de l'idée n°1 tant qu'il reste du quota |
+| `gemini_lite` | gemini-3.5-flash-lite | 1,5 à 10 s | large | Générateur d'idées, filet de sécurité partout |
+| `openrouter` | nemotron-3-ultra (gratuit) | instable, souvent > 90 s sur les textes longs | ~50 req/jour sans crédit | Dernier recours |
+
+Mesures en conditions réelles : une génération d'idées complète prend 30 à 70 s. Avec deux utilisateurs
+simultanés, les limites par minute sautent ; le routeur patiente si la limite se lève en moins de 8 s, sinon
+passe à la voie suivante, et met de côté une voie dont le quota du jour est épuisé (délai lu dans la réponse).
+**Capacité estimée en gratuit : quelques dizaines de générations d'idées par jour.** Pour monter en charge, une
+clé payante Gemini Flash Lite ou Groq coûte quelques centimes par génération ; à prévoir avec l'offre Pro.
+
 **Routeur LLM** (`server/ai/router.ts`) : chaque tâche (`interview`, `portrait`, `ideation`, `plan`, `assistant`)
 déclare une chaîne de fournisseurs. Le routeur gère les erreurs 429, les timeouts et un circuit breaker par fournisseur,
 puis enregistre les tokens consommés dans `ai_usage`. Changer de modèle ne demande qu'une variable d'environnement.

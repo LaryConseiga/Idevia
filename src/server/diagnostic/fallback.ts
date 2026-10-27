@@ -299,7 +299,61 @@ export function materialize(entry: FallbackQuestion, id: string, state: ProfileS
   };
 }
 
-export const fallbackByKey = (key: string) => (key === OPENING.key ? OPENING : BANK.find((q) => q.key === key) ?? null);
+/** Questions d'approfondissement : ce qui rend la personne unique, quand l'essentiel est déjà connu. */
+const DEEPEN: FallbackQuestion[] = [
+  {
+    key: "deepen-proud",
+    intent: "skills",
+    kind: "text",
+    options: [],
+    prompt: "Raconte-moi une chose que tu as réussie et dont tu es fier ou fière, même petite.",
+    placeholder: "Ex. : j'ai organisé le mariage de ma cousine, j'ai appris à coder un site par moi-même…",
+    apply: (a, state) => ({
+      skills: {
+        value: {
+          items: slot(state, "skills")?.items ?? [],
+          experience: [...(slot(state, "skills")?.experience ?? []), a.text.slice(0, 140)],
+        },
+        confidence: Math.max(confidenceOf(state, "skills"), 2),
+        source: "user",
+      },
+    }),
+  },
+  {
+    key: "deepen-asked",
+    intent: "skills",
+    kind: "text",
+    options: [],
+    prompt: "Qu'est-ce que les gens autour de toi te demandent souvent de faire pour eux ?",
+    placeholder: "Ex. : coiffer, réparer un téléphone, relire un CV, cuisiner pour une fête…",
+    apply: (a, state) => ({
+      skills: {
+        value: { items: [...(slot(state, "skills")?.items ?? []), a.text.slice(0, 80)], experience: slot(state, "skills")?.experience ?? [] },
+        confidence: Math.max(confidenceOf(state, "skills"), 2),
+        source: "user",
+      },
+    }),
+  },
+  {
+    key: "deepen-never",
+    intent: "interests",
+    kind: "text",
+    options: [],
+    prompt: "À l'inverse, qu'est-ce que tu ne voudrais surtout pas faire dans ton activité ?",
+    apply: (a, state) => ({
+      interests: {
+        value: { sectors: slot(state, "interests")?.sectors ?? [], excluded: [...(slot(state, "interests")?.excluded ?? []), a.text.slice(0, 80)] },
+        confidence: Math.max(confidenceOf(state, "interests"), 2),
+        source: "user",
+      },
+    }),
+  },
+];
+
+export const fallbackByKey = (key: string) =>
+  key === OPENING.key ? OPENING : (BANK.find((q) => q.key === key) ?? DEEPEN.find((q) => q.key === key) ?? null);
+
+export const pickDeepen = (askedKeys: string[]) => DEEPEN.find((q) => !askedKeys.includes(q.key)) ?? null;
 
 /**
  * Choisit la prochaine question de secours : dimension indispensable la moins renseignée d'abord,

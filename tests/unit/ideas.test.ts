@@ -109,7 +109,7 @@ describe("score et sélection", () => {
 describe("orchestration complète", () => {
   function fakeGenerate(overrides: { judgeFails?: boolean; writerFails?: boolean } = {}) {
     return vi.fn(async (options: { task: string; user: string }) => {
-      const ok = <T,>(data: T) => ({ data, provider: "groq" as const, model: options.task });
+      const ok = <T,>(data: T) => ({ data, provider: "groq_fast" as const, model: options.task });
       switch (options.task) {
         case "ideation":
           return ok({ ideas: [candidate("Traiteur bureaux", "repas"), candidate("Jus de bissap", "boissons"), candidate("Cours de cuisine", "formation")] });

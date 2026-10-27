@@ -35,6 +35,7 @@ const schema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   OPENROUTER_API_KEY: z.string().optional(),
   CEREBRAS_API_KEY: z.string().optional(),
+  MISTRAL_API_KEY: z.string().optional(),
   /**
    * Identifiants de modèles (vérifiés le 27/10/2026) : modifiables sans toucher au code quand un fournisseur
    * fait évoluer son offre gratuite. `npm run ai:check` teste chaque voie.
@@ -45,6 +46,8 @@ const schema = z.object({
   AI_MODEL_GEMINI_LITE: z.string().default("gemini-3.5-flash-lite"),
   AI_MODEL_OPENROUTER: z.string().default("nvidia/nemotron-3-ultra-550b-a55b:free"),
   AI_MODEL_CEREBRAS: z.string().default("gpt-oss-120b"),
+  /** Offre gratuite Mistral : seuls les modèles Ministral y sont ouverts (les modèles Small et Medium renvoient 429). */
+  AI_MODEL_MISTRAL: z.string().default("ministral-8b-latest"),
 
   APIFY_TOKEN: z.string().optional(),
 

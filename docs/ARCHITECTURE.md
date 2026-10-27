@@ -101,7 +101,13 @@ chacune configurable par variable d'environnement (`AI_MODEL_*`) et testable ave
 | `groq_reasoning` | openai/gpt-oss-120b | ~5 s, raisonne | ~1 000 req/jour, tokens/minute limités | Juge, portrait, rédaction |
 | `gemini` | gemini-3.5-flash | 9 à 30 s, meilleure plume | **20 requêtes/jour** | Rédaction de l'idée n°1 tant qu'il reste du quota |
 | `gemini_lite` | gemini-3.5-flash-lite | 1,5 à 10 s | large | Générateur d'idées, filet de sécurité partout |
+| `mistral` | ministral-8b-latest | 16 à 20 s ; JSON valide 3 fois sur 4 (idées), 1 fois sur 4 (fiches) | 188 req/minute | Relais entretien et idéation, jamais juge ni rédaction |
 | `openrouter` | nemotron-3-ultra (gratuit) | instable, souvent > 90 s sur les textes longs | ~50 req/jour sans crédit | Dernier recours |
+
+Offre gratuite Mistral (« Experiment ») : seuls les modèles Ministral (3B, 8B, 14B) sont ouverts ; Small, Medium et
+Magistral répondent 429 avec une limite à 0. Ministral 14B renvoie un JSON invalide sur nos prompts. Les requêtes de
+cette offre peuvent servir à l'entraînement de Mistral : à mentionner dans la politique de confidentialité, et à
+remplacer par un plan payant avec l'offre Pro. Les textes générés sont débarrassés du gras et de l'italique markdown.
 
 Mesures en conditions réelles : une génération d'idées complète prend 30 à 70 s. Avec deux utilisateurs
 simultanés, les limites par minute sautent ; le routeur patiente si la limite se lève en moins de 8 s, sinon
@@ -486,7 +492,7 @@ Tests automatisés : l'utilisateur A tente de lire, modifier ou supprimer chaque
 
 - Export complet en JSON depuis l'espace compte (droit à la portabilité).
 - Hébergement des données dans l'UE (Neon Francfort, Vercel fra1). Signer les DPA des sous-traitants
-  (Groq, Google, OpenRouter, Vercel, Neon, Resend, Apify, Sentry, Upstash, Inngest) et les lister dans la politique de confidentialité.
+  (Groq, Google, Mistral, OpenRouter, Vercel, Neon, Resend, Apify, Sentry, Upstash, Inngest) et les lister dans la politique de confidentialité.
 - Ni les conversations ni les données utilisateur ne servent à entraîner un modèle.
 
 ### 8.7. Environnements et déploiement

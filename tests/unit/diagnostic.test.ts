@@ -258,6 +258,7 @@ describe("routeur LLM", () => {
     groq_fast: provider("groq_fast", "k"),
     groq_reasoning: provider("groq_reasoning", "k"),
     cerebras: provider("cerebras"),
+    mistral: provider("mistral"),
     gemini: provider("gemini", "k"),
     gemini_lite: provider("gemini_lite", "k"),
     openrouter: provider("openrouter", "k"),

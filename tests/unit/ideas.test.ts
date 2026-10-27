@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { emptyProfile } from "@/server/diagnostic/profile";
 import { isLocked } from "@/server/ideas/access";
 import { dedupe, IdeasPipelineError, runIdeasPipeline, select, weightedScore } from "@/server/ideas/pipeline";
-import type { Candidate, IdeaContent, Judgement } from "@/server/ideas/schemas";
+import { stripMarkdown, type Candidate, type IdeaContent, type Judgement } from "@/server/ideas/schemas";
 
 vi.mock("server-only", () => ({}));
 
@@ -165,6 +165,15 @@ describe("orchestration complète", () => {
     await expect(
       runIdeasPipeline({ state: emptyProfile(), portrait: null, generate: fakeGenerate({ writerFails: true }) as never, userId: "u1" }),
     ).rejects.toBeInstanceOf(IdeasPipelineError);
+  });
+});
+
+describe("nettoyage des textes", () => {
+  it("retire le gras et l'italique markdown sans toucher au reste", () => {
+    expect(stripMarkdown("Tu as cousu pendant **8 ans** et tu écris : *« Ça te plaît ? »*.")).toBe(
+      "Tu as cousu pendant 8 ans et tu écris : « Ça te plaît ? ».",
+    );
+    expect(stripMarkdown("Compte 2 * 5 000 FCFA, soit 10 000 FCFA.")).toBe("Compte 2 * 5 000 FCFA, soit 10 000 FCFA.");
   });
 });
 

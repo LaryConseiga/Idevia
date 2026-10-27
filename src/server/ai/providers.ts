@@ -9,6 +9,7 @@ import { ProviderError, type ChatRequest, type ChatResult, type Provider, type P
  */
 
 const GROQ = "https://api.groq.com/openai/v1/chat/completions";
+const MISTRAL = "https://api.mistral.ai/v1/chat/completions";
 const GEMINI = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 export const providers: Record<ProviderId, Provider> = {
@@ -36,6 +37,7 @@ export const providers: Record<ProviderId, Provider> = {
     model: env.AI_MODEL_CEREBRAS,
     apiKey: env.CEREBRAS_API_KEY,
   },
+  mistral: { id: "mistral", url: MISTRAL, model: env.AI_MODEL_MISTRAL, apiKey: env.MISTRAL_API_KEY },
 };
 
 export async function callChat(provider: Provider, request: ChatRequest, signal: AbortSignal): Promise<ChatResult> {

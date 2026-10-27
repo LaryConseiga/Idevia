@@ -4,12 +4,18 @@ import { z } from "zod";
  * Formats échangés avec les modèles. Tolérants en entrée (les modèles débordent parfois), bornés en sortie.
  */
 
+/** Les textes sont affichés tels quels : on retire le gras et l'italique markdown que certains modèles ajoutent. */
+export const stripMarkdown = (s: string) =>
+  s
+    .replace(/(\*\*|__)(.+?)\1/g, "$2")
+    .replace(/(^|[\s(«])\*(?!\s)([^*\n]+?)\*(?=$|[\s.,;:!?)»])/g, "$1$2");
+
 const text = (max: number, min = 1) =>
   z
     .string()
     .trim()
     .min(min)
-    .transform((s) => s.slice(0, max));
+    .transform((s) => stripMarkdown(s).slice(0, max));
 
 // ---------------------------------------------------------------- 1. Candidates (générateurs)
 

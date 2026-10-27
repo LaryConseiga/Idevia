@@ -4,7 +4,7 @@
  * Une « voie » = un fournisseur + un modèle. Un même fournisseur peut offrir plusieurs voies
  * (ex. Groq : un modèle très rapide pour l'entretien, un modèle qui raisonne pour juger les idées).
  */
-export type ProviderId = "groq_fast" | "groq_reasoning" | "gemini" | "gemini_lite" | "openrouter" | "cerebras";
+export type ProviderId = "groq_fast" | "groq_reasoning" | "gemini" | "gemini_lite" | "openrouter" | "cerebras" | "mistral";
 
 export type Provider = {
   id: ProviderId;

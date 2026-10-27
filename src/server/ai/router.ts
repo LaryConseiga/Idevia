@@ -17,21 +17,23 @@ export type Task = "interview" | "portrait" | "ideation" | "ideation_alt" | "jud
  * - gpt-oss-120b (Groq) : raisonne bien, ~5 s, ~1 000 requêtes/jour mais tokens/minute limités ;
  * - Gemini 3.5 Flash : la meilleure plume, mais 20 requêtes/jour en gratuit : réservé à ce qui compte le plus ;
  * - Gemini Flash Lite : rapide, quota large, bon filet de sécurité ;
+ * - Ministral 8B (Mistral, seul modèle ouvert en gratuit) : idées variées mais ~20 s, JSON valide 3 fois sur 4 et
+ *   fiches peu fiables (1 sur 4) : relais pour l'entretien et l'idéation, jamais pour noter ni rédiger ;
  * - OpenRouter gratuit : lent et instable, dernier recours.
  */
 export const CHAINS: Record<Task, ProviderId[]> = {
   // Latence d'abord : l'utilisateur attend la question suivante.
-  interview: ["groq_fast", "gemini_lite", "groq_reasoning", "openrouter"],
+  interview: ["groq_fast", "gemini_lite", "groq_reasoning", "mistral", "openrouter"],
   portrait: ["groq_reasoning", "gemini", "gemini_lite"],
   // Idéation à deux voix, deux familles de modèles différentes (Google et Alibaba) pour diversifier.
-  ideation: ["gemini_lite", "gemini", "openrouter"],
+  ideation: ["gemini_lite", "gemini", "mistral", "openrouter"],
   // qwen garde à gpt-oss-120b son quota de tokens/minute pour le juge qui suit immédiatement.
-  ideation_alt: ["groq_fast", "groq_reasoning", "openrouter"],
+  ideation_alt: ["groq_fast", "groq_reasoning", "mistral", "openrouter"],
   // Le juge raisonne, et n'est pas le générateur principal (on limite la complaisance envers ses propres idées).
   judge: ["groq_reasoning", "gemini_lite", "openrouter"],
   // Rédaction : voir WRITER_CHAINS (une voie différente par idée).
   plan: ["groq_reasoning", "gemini_lite", "gemini"],
-  assistant: ["groq_fast", "gemini_lite", "groq_reasoning"],
+  assistant: ["groq_fast", "gemini_lite", "groq_reasoning", "mistral"],
 };
 
 /**

@@ -2,12 +2,15 @@ import { ChevronRight, Download, ShieldCheck, Trash2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { getEmailReminders } from "@/server/dal/reminders";
 import { requireUser } from "@/server/dal/session";
+import { RemindersToggle } from "./reminders-toggle";
 
 export const metadata: Metadata = { title: "Mon compte" };
 
 export default async function AccountPage() {
   const user = await requireUser("/compte");
+  const reminders = await getEmailReminders(user.id);
   const links = [
     { href: "/compte/securite", icon: ShieldCheck, title: "Sécurité", text: "Double authentification, mot de passe" },
     { href: "/compte/donnees", icon: Download, title: "Mes données", text: "Exporter tout ce qu'Idevia sait de toi" },
@@ -29,6 +32,9 @@ export default async function AccountPage() {
           </div>
         </dl>
       </Card>
+      <div className="mt-6">
+        <RemindersToggle enabled={reminders} />
+      </div>
       <ul className="mt-6 divide-y divide-border overflow-hidden rounded-card border border-border bg-card">
         {links.map((link) => (
           <li key={link.href}>

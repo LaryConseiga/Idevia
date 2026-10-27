@@ -51,6 +51,8 @@ export const profiles = pgTable("profiles", {
   preferredLanguage: text("preferred_language").notNull().default("fr"),
   experienceLevel: text("experience_level"), // first | some | experienced
   plan: text("plan").notNull().default("free"), // free | pro
+  /** Rappels par email quand une étape du plan arrive à échéance (désactivables en un clic). */
+  emailReminders: boolean("email_reminders").notNull().default(true),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -188,6 +190,7 @@ export const projects = pgTable(
     countryOrMarket: text("country_or_market"),
     /** Mémoire de projet (faits confirmés, décisions, apprentissages) : chiffrée. */
     memoryEnc: text("memory_enc"),
+    lastReminderAt: timestamp("last_reminder_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

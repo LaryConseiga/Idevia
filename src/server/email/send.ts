@@ -4,7 +4,7 @@ import { env, isProd } from "@/server/env";
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
-type Mail = { to: string; subject: string; html: string; text: string };
+type Mail = { to: string; subject: string; html: string; text: string; headers?: Record<string, string> };
 
 export async function sendEmail(mail: Mail) {
   if (!resend) {

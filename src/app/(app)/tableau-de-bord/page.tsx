@@ -1,4 +1,4 @@
-import { ArrowRight, Check, CheckCircle2, Compass, Flag, Lightbulb, Radar, Sparkles, UserRound } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, Compass, Flag, Lightbulb, MessageCircle, Radar, Sparkles, UserRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -265,14 +265,22 @@ function ProjectSummary({ project }: { project: ProjectView }) {
           </Button>
         </div>
       </Card>
-      {checkable && (
+      <div className="grid gap-4 md:grid-cols-2">
         <Shortcut
-          href="/projet#terrain"
-          icon={<Radar className="size-5" aria-hidden />}
-          label="Le terrain"
-          text="Vérifie ton idée avec de vraies données : concurrents, recherches, publicités."
+          href="/assistant"
+          icon={<MessageCircle className="size-5" aria-hidden />}
+          label="Ton coach"
+          text="Une question, un blocage, un message à écrire : il connaît ton projet."
         />
-      )}
+        {checkable && (
+          <Shortcut
+            href="/projet#terrain"
+            icon={<Radar className="size-5" aria-hidden />}
+            label="Le terrain"
+            text="Vérifie ton idée avec de vraies données : concurrents, recherches, publicités."
+          />
+        )}
+      </div>
     </div>
   );
 }

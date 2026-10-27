@@ -50,6 +50,8 @@ const schema = z.object({
   AI_MODEL_MISTRAL: z.string().default("ministral-8b-latest"),
 
   APIFY_TOKEN: z.string().optional(),
+  /** Tokens mensuels offerts pour le coach (un échange en consomme environ 3 000, contexte du projet compris). */
+  ASSISTANT_MONTHLY_TOKENS: z.coerce.number().int().min(1000).default(100_000),
   /** Vérifications terrain par mois et par compte (chacune coûte environ 0,10 $ de crédits Apify hors cache). */
   FIELD_CHECKS_MONTHLY_QUOTA: z.coerce.number().int().min(1).max(20).default(2),
 

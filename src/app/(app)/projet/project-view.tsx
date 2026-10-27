@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, CheckCircle2, ChevronDown, Flag, PartyPopper } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, ChevronDown, Flag, MessageCircle, PartyPopper } from "lucide-react";
 import Link from "next/link";
 import { useOptimistic, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,10 @@ import { FieldSection } from "./field-section";
 
 const dueFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" });
 export const formatDue = (date: string) => dueFormat.format(new Date(`${date}T00:00:00Z`));
+
+/** Ouvre le coach avec une question déjà écrite sur cette étape. */
+const askCoachHref = (task: TaskView) =>
+  `/assistant?question=${encodeURIComponent(`Je bloque sur l'étape « ${task.title} ». Par quoi je commence ?`)}`;
 
 export function ProjectView({ project }: { project: Project }) {
   const [error, setError] = useState<string | null>(null);
@@ -129,11 +133,19 @@ function NowCard({ task, canTrack, onDone }: { task: TaskView; canTrack: boolean
           </span>
         </p>
       )}
-      {canTrack && (
-        <Button onClick={onDone} className="mt-5 w-full bg-background text-foreground hover:bg-background/90 sm:w-auto">
-          <Check aria-hidden /> C&apos;est fait
-        </Button>
-      )}
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        {canTrack && (
+          <Button onClick={onDone} className="w-full bg-background text-foreground hover:bg-background/90 sm:w-auto">
+            <Check aria-hidden /> C&apos;est fait
+          </Button>
+        )}
+        <Link
+          href={askCoachHref(task)}
+          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-3 text-sm font-semibold underline-offset-4 hover:underline"
+        >
+          <MessageCircle className="size-4" aria-hidden /> Je bloque, j&apos;en parle au coach
+        </Link>
+      </div>
     </section>
   );
 }
@@ -185,6 +197,11 @@ function TaskRow(props: { task: TaskView; canTrack: boolean; isNext: boolean; on
               {task.expectedResult}
             </span>
           </p>
+        )}
+        {!task.done && (
+          <Link href={askCoachHref(task)} className="mt-3 inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+            <MessageCircle className="size-4" aria-hidden /> Demander de l&apos;aide au coach
+          </Link>
         )}
       </details>
     </li>

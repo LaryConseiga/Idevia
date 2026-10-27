@@ -35,7 +35,9 @@ export const CHAINS: Record<Task, ProviderId[]> = {
   plan: ["groq_reasoning", "gemini_lite", "gemini"],
   // Lecture des signaux de marché : Flash Lite propose des tests plus concrets et adaptés au terrain que gpt-oss.
   validation: ["gemini_lite", "groq_reasoning", "gemini"],
-  assistant: ["groq_fast", "gemini_lite", "groq_reasoning", "mistral"],
+  // Le contenu le plus personnel : Groq d'abord (pas d'entraînement sur les données de l'API), jamais l'offre
+  // gratuite de Mistral qui, elle, peut s'en servir.
+  assistant: ["groq_fast", "groq_reasoning", "gemini_lite"],
 };
 
 /**

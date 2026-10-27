@@ -332,6 +332,28 @@ Trois sources retenues après essais réels (Abidjan et Lyon), dans `src/server/
 - Garde-fous : `FIELD_CHECKS_MONTHLY_QUOTA` (2 par défaut), arrêt à 90 % des crédits Apify du mois (`/users/me/limits`),
   limitation de fréquence, verrou par utilisateur. Offre payante active : suivi et terrain réservés à Pro.
 
+### 5.3.2. Coach et rappels (phase 5, 27/10/2026)
+
+**Coach** (`src/server/assistant/`, page `/assistant`) : un assistant par projet, sans aucun outil.
+- Contexte envoyé à chaque message : profil pseudonymisé, idée (offre, budget, objectif, pièges), plan avec statuts
+  et retards, rapport terrain, hypothèses et leur statut, mémoire du projet, 12 derniers messages. Dates écrites en
+  toutes lettres (le masquage des numéros confondait « 2026-10-27 » avec un téléphone).
+- Coordonnées masquées dans le message et l'historique avant l'envoi ; blocs délimités contre l'injection de prompt.
+- Chaîne : Groq rapide (qwen), Groq gpt-oss, Gemini Flash Lite ; jamais l'offre gratuite de Mistral, qui peut
+  entraîner ses modèles sur les requêtes. Réponse en 4 à 8 s.
+- Mémoire de projet (`projects.memory_enc`, chiffrée) : au plus 2 faits nouveaux par message, 20 au total, visibles
+  et supprimables par la personne.
+- Quota : `ASSISTANT_MONTHLY_TOKENS` (100 000 par défaut, environ 33 échanges), mesuré dans `ai_usage` ;
+  10 messages par minute au plus.
+- Raccourcis : « Je bloque, j'en parle au coach » sur l'étape en cours ouvre le coach avec la question écrite.
+
+**Rappels par email** (`/api/cron/reminders`, chaque jour à 7 h UTC) : prochaine étape non faite arrivée à
+échéance (ou la veille), au plus un rappel tous les 3 jours par projet, jamais le jour de création du projet,
+seulement si l'adresse est vérifiée et les rappels activés. 80 envois par jour au plus (offre gratuite Resend :
+100 par jour). Désabonnement en un clic par lien signé (HMAC dérivé de `BETTER_AUTH_SECRET`) et en-têtes
+`List-Unsubscribe` (RFC 8058) ; réglage dans « Mon compte ». Un envoi raté n'est pas marqué et sera retenté.
+Nécessite `EMAIL_FROM` sur un domaine vérifié chez Resend pour écrire à d'autres adresses que celle du compte Resend.
+
 ### 5.4. Usage 3 : inspiration pour l'idéation
 
 La répartition du catalogue (niches où de nombreux outils existent, ce qu'on automatise souvent) alimente
@@ -550,6 +572,6 @@ Tests automatisés : l'utilisateur A tente de lire, modifier ou supprimer chaque
 | 2 | Diagnostic adaptatif + miroir | Entretien complet, anonyme puis rattaché au compte |
 | 3 | Ingestion du catalogue + signaux de marché + génération d'idées | 3 idées personnalisées, sourcées, comparables |
 | 4 | Validation, plan de lancement, tâches 30 jours, tableau de bord | Parcours principal opérationnel (livré le 27/10/2026 : page « Mon projet », vérification terrain) |
-| 5 | Assistant contextualisé + mémoire de projet + emails | Accompagnement continu |
+| 5 | Assistant contextualisé + mémoire de projet + emails | Accompagnement continu (livré le 27/10/2026 : coach, mémoire, rappels) |
 | 6 | Admin : rôles, 2FA, analytics, entonnoir, coûts, blog | Back-office utilisable |
 | 7 | SEO, pages légales, tests e2e et sécurité, domaine name.com | MVP en production |

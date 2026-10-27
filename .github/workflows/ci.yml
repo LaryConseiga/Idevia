@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: idevia_owner
+          POSTGRES_PASSWORD: ci_owner
+          POSTGRES_DB: idevia
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U idevia_owner" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      APP_URL: http://localhost:3000
+      # Même répartition que sur Neon : DATABASE_URL = propriétaire (migrations), DATABASE_APP_URL = rôle applicatif.
+      DATABASE_URL: postgres://idevia_owner:ci_owner@localhost:5432/idevia
+      DATABASE_APP_URL: postgres://idevia_app:ci_app@localhost:5432/idevia
+      BETTER_AUTH_SECRET: ci-secret-not-used-anywhere-else-0123456789abcdef
+      DATA_ENCRYPTION_KEYS: v1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      ANALYTICS_SALT: ci-salt-0123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Rôle applicatif (sans BYPASSRLS)
+        run: psql "$DATABASE_URL" -c "CREATE ROLE idevia_app LOGIN PASSWORD 'ci_app' NOBYPASSRLS;"
+      - run: npx drizzle-kit migrate
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run build

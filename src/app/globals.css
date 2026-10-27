@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/*
+ * Design system Idevia — « Terre & croissance »
+ * Source : design-system/idevia/MASTER.md. Aucune couleur brute dans les composants : uniquement ces tokens.
+ */
+
+:root {
+  --background: #fffbf5;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --muted: #f5efe6;
+  --muted-foreground: #57534e;
+  --border: #e7dfd3;
+  --input: #d6cbbb;
+  --primary: #0b5d46;
+  --primary-hover: #094d3a;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e3f1ec;
+  --accent: #c2410c;
+  --accent-hover: #a8380a;
+  --accent-foreground: #ffffff;
+  --accent-soft: #fbe9df;
+  --highlight: #b7791f;
+  --highlight-soft: #f8edd9;
+  --destructive: #b91c1c;
+  --destructive-soft: #fdecec;
+  --success: #15803d;
+  --success-soft: #e6f4ea;
+  --ring: #0b5d46;
+  --radius: 0.875rem;
+  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.04), 0 4px 16px rgb(28 25 23 / 0.05);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #12110f;
+    --foreground: #f5f1ea;
+    --card: #1c1a17;
+    --card-foreground: #f5f1ea;
+    --muted: #26231f;
+    --muted-foreground: #a8a29e;
+    --border: #34302b;
+    --input: #4a4540;
+    --primary: #34c08f;
+    --primary-hover: #4fd1a2;
+    --primary-foreground: #06231a;
+    --primary-soft: #12352a;
+    --accent: #f08a5d;
+    --accent-hover: #f5a07a;
+    --accent-foreground: #2a0e03;
+    --accent-soft: #3a1d10;
+    --highlight: #e6b450;
+    --highlight-soft: #3a2e14;
+    --destructive: #f87171;
+    --destructive-soft: #3b1414;
+    --success: #4ade80;
+    --success-soft: #11301c;
+    --ring: #34c08f;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-highlight: var(--highlight);
+  --color-highlight-soft: var(--highlight-soft);
+  --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-ring: var(--ring);
+  --radius-card: var(--radius);
+  --shadow-card: var(--shadow-card);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+  ::selection {
+    background: var(--primary-soft);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -418,12 +418,13 @@ function NextSteps({ anonymous, onRestart }: { anonymous: boolean; onRestart: ()
     <Card className="flex flex-col gap-4 border-primary/30 p-6 sm:p-8">
       <h2 className="text-2xl font-bold">Ton portrait est enregistré</h2>
       <p className="leading-relaxed text-muted-foreground">
-        Prochaine étape : des idées de business construites à partir de ce portrait et de ton marché.
+        Prochaine étape : les trois idées de business qui te ressemblent le plus, chacune avec un plan pour tes
+        30 premiers jours.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button asChild variant="cta">
-          <Link href="/tableau-de-bord">
-            Continuer <ArrowRight aria-hidden />
+          <Link href="/idees">
+            Découvrir mes 3 idées <ArrowRight aria-hidden />
           </Link>
         </Button>
         <Button variant="ghost" onClick={onRestart}>

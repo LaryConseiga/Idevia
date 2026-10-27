@@ -43,6 +43,14 @@ const schema = z.object({
 
   APIFY_TOKEN: z.string().optional(),
 
+  /**
+   * Offre payante (désactivée au lancement) : quand elle est active, un compte gratuit ne voit en entier que
+   * la 3e idée (la moins pertinente) ; les deux meilleures et le suivi sont réservés à l'offre Pro.
+   */
+  IDEAS_PAYWALL: z.enum(["on", "off"]).default("off"),
+  /** Générations d'idées par mois et par compte (chacune coûte une dizaine d'appels aux modèles). */
+  IDEAS_MONTHLY_QUOTA: z.coerce.number().int().min(1).max(50).default(3),
+
   /** Sel du hachage quotidien des visiteurs (analytics sans cookie). */
   ANALYTICS_SALT: z.string().min(16),
 

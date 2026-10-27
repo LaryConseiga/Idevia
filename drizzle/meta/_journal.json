@@ -29,6 +29,20 @@
       "when": 1793094510376,
       "tag": "0003_diagnostic_progress_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793095730350,
+      "tag": "0004_idea_batches",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793095731501,
+      "tag": "0005_idea_batches_rls",
+      "breakpoints": true
     }
   ]
 }

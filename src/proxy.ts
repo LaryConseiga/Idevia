@@ -9,7 +9,7 @@ import { NextResponse, type NextRequest } from "next/server";
  *    Ce n'est PAS le contrôle d'accès : chaque page et action revérifie la session côté serveur (DAL).
  */
 
-const AUTHENTICATED = ["/tableau-de-bord", "/projets", "/assistant", "/compte", "/admin"];
+const AUTHENTICATED = ["/tableau-de-bord", "/idees", "/projets", "/assistant", "/compte", "/admin"];
 const PRIVATE = [...AUTHENTICATED, "/diagnostic", "/connexion", "/inscription", "/mot-de-passe", "/verification"];
 
 const startsWithAny = (path: string, prefixes: string[]) =>

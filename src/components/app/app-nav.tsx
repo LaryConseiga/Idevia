@@ -1,14 +1,13 @@
 "use client";
 
-import { Bot, FolderKanban, House, UserRound } from "lucide-react";
+import { House, Lightbulb, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/tableau-de-bord", label: "Accueil", icon: House },
-  { href: "/projets", label: "Projets", icon: FolderKanban },
-  { href: "/assistant", label: "Assistant", icon: Bot },
+  { href: "/idees", label: "Mes idées", icon: Lightbulb },
   { href: "/compte", label: "Compte", icon: UserRound },
 ];
 
@@ -42,7 +41,7 @@ export function AppNav({ variant }: { variant: "sidebar" | "bottom" }) {
       aria-label="Navigation de l'application"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
-      <ul className="grid grid-cols-4">
+      <ul className="grid grid-cols-3">
         {items.map((item) => (
           <li key={item.href}>
             <Link

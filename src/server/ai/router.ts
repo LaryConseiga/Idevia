@@ -9,14 +9,18 @@ import { ProviderError, type ChatMessage, type ChatRequest, type ChatResult, typ
  * Ce module est pur (dépendances injectées) pour être testé sans réseau.
  */
 
-export type Task = "interview" | "portrait" | "ideation" | "plan" | "assistant";
+export type Task = "interview" | "portrait" | "ideation" | "ideation_alt" | "judge" | "plan" | "assistant";
 
 export const CHAINS: Record<Task, ProviderId[]> = {
   // Latence d'abord : l'utilisateur attend la question suivante.
   interview: ["groq", "cerebras", "gemini", "openrouter"],
   // Qualité rédactionnelle d'abord.
   portrait: ["gemini", "groq", "openrouter"],
+  // Idéation à deux voix : deux familles de modèles différentes pour diversifier les propositions.
   ideation: ["gemini", "openrouter", "groq"],
+  ideation_alt: ["groq", "cerebras", "openrouter", "gemini"],
+  // Le juge n'est pas le générateur principal : on limite la complaisance d'un modèle envers ses propres idées.
+  judge: ["groq", "cerebras", "openrouter", "gemini"],
   plan: ["gemini", "openrouter", "groq"],
   assistant: ["groq", "gemini", "openrouter"],
 };

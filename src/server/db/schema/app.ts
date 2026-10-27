@@ -127,6 +127,24 @@ export const diagnosticProgress = pgTable("diagnostic_progress", {
 // ---------------------------------------------------------------- Idées
 
 export const ideaStatus = pgEnum("idea_status", ["suggested", "saved", "selected", "dismissed"]);
+export const ideaBatchStatus = pgEnum("idea_batch_status", ["running", "ready", "failed"]);
+
+/** Une génération d'idées : plusieurs modèles proposent, un juge classe, on garde les 3 meilleures. */
+export const ideaBatches = pgTable(
+  "idea_batches",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userRef(),
+    diagnosticId: uuid("diagnostic_id").references(() => diagnostics.id, { onDelete: "set null" }),
+    status: ideaBatchStatus("status").notNull().default("running"),
+    errorCode: text("error_code"),
+    /** Traçabilité de l'orchestration : modèles utilisés, nombre de candidates, durées. Aucune donnée personnelle. */
+    pipeline: jsonb("pipeline"),
+    createdAt: createdAt(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [index("idea_batches_user_idx").on(t.userId, t.createdAt)],
+);
 
 export const businessIdeas = pgTable(
   "business_ideas",
@@ -134,6 +152,9 @@ export const businessIdeas = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     userId: userRef(),
     diagnosticId: uuid("diagnostic_id").references(() => diagnostics.id, { onDelete: "set null" }),
+    batchId: uuid("batch_id").references(() => ideaBatches.id, { onDelete: "cascade" }),
+    /** 1 = la plus pertinente. */
+    rank: smallint("rank").notNull().default(1),
     title: text("title").notNull(),
     summary: text("summary").notNull(),
     details: jsonb("details").notNull(),
@@ -141,10 +162,12 @@ export const businessIdeas = pgTable(
     scoreBreakdown: jsonb("score_breakdown").notNull(),
     /** Raisons personnelles citant les réponses de l'utilisateur : chiffrées. */
     whyYouEnc: text("why_you_enc").notNull(),
+    /** Fiche complète (offre, plan d'action, risques), personnalisée : chiffrée. */
+    contentEnc: text("content_enc"),
     status: ideaStatus("status").notNull().default("suggested"),
     createdAt: createdAt(),
   },
-  (t) => [index("business_ideas_user_id_idx").on(t.userId)],
+  (t) => [index("business_ideas_user_id_idx").on(t.userId), index("business_ideas_batch_idx").on(t.batchId, t.rank)],
 );
 
 // ---------------------------------------------------------------- Projets

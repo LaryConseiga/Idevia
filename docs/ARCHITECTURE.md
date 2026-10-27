@@ -316,6 +316,26 @@ automatisation pour PME).
 
 ---
 
+### 5.7. Génération des idées (mis en place le 27/10/2026)
+
+Trois idées seulement, classées de la plus à la moins pertinente, chacune avec un plan d'action sur 30 jours.
+L'orchestration (`src/server/ideas/pipeline.ts`) :
+1. **Divergence** : deux générateurs de familles de modèles différentes (Gemini, puis Groq/Cerebras) proposent
+   6 idées chacun, sous deux angles : « ancrage » (ce que la personne sait déjà faire) et « audace » (niches, nouveaux canaux).
+2. **Jugement** : un troisième modèle, distinct du générateur principal, note chaque idée de 0 à 10 sur six critères
+   (compétences, demande locale, budget et temps, motivation, rapidité des premiers revenus, risque) et peut l'éliminer.
+   Le score sur 100 est calculé côté serveur avec des poids fixes : il est stable et expliqué à l'utilisateur.
+3. **Sélection** : les 3 meilleures, une par famille de modèle économique tant que c'est possible.
+4. **Rédaction** : fiche et plan écrits en parallèle, au tutoiement, en petits paragraphes, avec des chiffres prudents
+   en monnaie locale, une action à faire le jour même et les pièges à éviter.
+
+La génération tourne en arrière-plan (`after`, `maxDuration = 300`) ; la page suit l'avancement. Quota :
+`IDEAS_MONTHLY_QUOTA` générations par mois (3 par défaut, les échecs ne comptent pas). Les fiches sont chiffrées.
+
+**Offre payante** (`IDEAS_PAYWALL`, désactivée au lancement) : un compte gratuit voit en entier la 3e idée, la moins
+pertinente ; les deux meilleures et le suivi sont réservés à l'offre Pro. Le serveur n'envoie alors ni le titre ni le
+contenu des idées verrouillées ; le bouton « Me prévenir » inscrit le compte sur la liste d'attente Pro.
+
 ## 6. PWA
 
 - `app/manifest.ts` : nom, icônes (192, 512, maskable), `display: "standalone"`, `theme_color`,

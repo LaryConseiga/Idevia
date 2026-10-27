@@ -26,7 +26,8 @@ export const dimensionValues = {
       .transform((c) => countryByCode(c)?.code ?? null),
     country: text(60).nullish(),
     city: text(60).nullish(),
-    scope: z.enum(["local", "national", "international"]).nullish(),
+    /** Où sont ses clients : le lieu de vie fixe la devise et les démarches, pas les limites du marché. */
+    scope: z.enum(["local", "national", "online", "cross_border", "international"]).nullish().catch(null),
   }),
   goal: z.object({
     type: z.enum(["complement", "principal", "scale", "unsure"]).nullish(),

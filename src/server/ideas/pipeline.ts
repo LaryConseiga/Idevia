@@ -29,6 +29,8 @@ type Generate = ReturnType<typeof createRouter>["generate"];
 
 export const IDEAS_PER_GENERATOR = 6;
 export const KEEP = 3;
+/** Écart de score accepté pour garder une idée qui dépasse le lieu de vie (sur 100). */
+const REACH_TOLERANCE = 12;
 
 export type GeneratedIdea = {
   rank: number;
@@ -86,7 +88,11 @@ export function dedupe(candidates: Candidate[]): Candidate[] {
  * Garde les meilleures idées, une seule par famille de modèle économique tant que c'est possible.
  * Sans notation (juge indisponible), l'ordre des générateurs fait foi.
  */
-export function select(candidates: Candidate[], judgements: Judgement[] | null, keep = KEEP) {
+export function select(
+  candidates: Candidate[],
+  judgements: Judgement[] | null,
+  { keep = KEEP, localOnly = false }: { keep?: number; localOnly?: boolean } = {},
+) {
   const scored = candidates.map((candidate, index) => {
     const j = judgements?.find((x) => x.index === index) ?? null;
     return {
@@ -112,6 +118,15 @@ export function select(candidates: Candidate[], judgements: Judgement[] | null, 
   for (const s of ranked) {
     if (picked.length === keep) break;
     if (!picked.includes(s)) picked.push(s);
+  }
+
+  // Le lieu de vie ne doit pas enfermer les idées : sauf choix contraire de la personne, au moins une des trois
+  // vise des clients au-delà de sa ville, si une telle idée est presque aussi bien notée que la dernière retenue.
+  const beyond = (s: (typeof ranked)[number]) => s.candidate.reach !== "local";
+  const last = picked.at(-1);
+  if (!localOnly && last && picked.length === keep && !picked.some(beyond)) {
+    const alternative = ranked.find((s) => !picked.includes(s) && beyond(s));
+    if (alternative && (alternative.score ?? 0) >= (last.score ?? 0) - REACH_TOLERANCE) picked[picked.length - 1] = alternative;
   }
   return { picked, eliminated: scored.length - ranked.length };
 }
@@ -171,7 +186,9 @@ export async function runIdeasPipeline(input: {
   });
 
   // 3. Sélection
-  const { picked, eliminated } = select(candidates, judged?.data.scores ?? null);
+  const { picked, eliminated } = select(candidates, judged?.data.scores ?? null, {
+    localOnly: input.state.slots.market?.value.scope === "local",
+  });
   if (picked.length < KEEP) throw new IdeasPipelineError("no_candidates");
 
   // 4. Rédaction, en parallèle

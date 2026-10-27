@@ -29,7 +29,7 @@ const steps = [
   {
     icon: Compass,
     title: "Des idées faites pour toi",
-    text: "Trois idées adaptées à tes compétences, ton budget, ton temps et ta ville, avec pour chacune la raison pour laquelle elle te correspond.",
+    text: "Trois idées adaptées à tes compétences, ton budget et ton temps, près de chez toi, en ligne ou entre deux pays, avec pour chacune la raison pour laquelle elle te correspond.",
   },
   {
     icon: ListChecks,
@@ -41,8 +41,8 @@ const steps = [
 const promises = [
   {
     icon: MapPin,
-    title: "Ancré dans ton marché",
-    text: "Budgets en FCFA ou dans ta devise, canaux qui marchent chez toi (WhatsApp, Mobile Money, vente de proximité), concurrents réels de ta ville.",
+    title: "Ancré dans ta réalité, ouvert sur le monde",
+    text: "Budgets dans ta monnaie (FCFA, euro, franc suisse, dollar canadien…), démarches de ton pays, et des canaux qui marchent là où sont tes clients : au coin de la rue, en ligne ou dans la diaspora.",
   },
   {
     icon: Target,
@@ -97,14 +97,14 @@ export default function HomePage() {
           <div>
             <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-soft px-3 py-1 text-sm font-medium text-primary">
               <Sprout className="size-4" aria-hidden />
-              Pour les entrepreneurs d&apos;Afrique francophone
+              Pour les entrepreneurs francophones, d&apos;Afrique, d&apos;Europe et d&apos;ailleurs
             </p>
             <h1 className="mt-5 text-4xl font-extrabold sm:text-5xl lg:text-6xl">
               Trouve <span className="text-primary">ton</span> idée de business. Puis passe à l&apos;action.
             </h1>
             <p className="mt-5 max-w-xl text-lg text-muted-foreground">
               Idevia apprend à te connaître, te propose des idées qui collent à ta vie réelle — tes compétences, ton
-              budget, ta ville — et t&apos;accompagne avec un plan concret, étape par étape.
+              budget, ton temps — sans t&apos;enfermer dans ta ville, et t&apos;accompagne avec un plan concret, étape par étape.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button asChild variant="cta" size="lg">

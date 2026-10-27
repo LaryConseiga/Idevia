@@ -1,4 +1,4 @@
-/** Pays proposés en priorité (Afrique francophone d'abord) et leur devise ISO 4217. */
+/** Pays francophones (Afrique, Europe, Amériques, océan Indien) et leur devise ISO 4217. */
 export const COUNTRIES = [
   { code: "BJ", name: "Bénin", currency: "XOF" },
   { code: "BF", name: "Burkina Faso", currency: "XOF" },
@@ -29,7 +29,11 @@ export const COUNTRIES = [
   { code: "FR", name: "France", currency: "EUR" },
   { code: "BE", name: "Belgique", currency: "EUR" },
   { code: "CH", name: "Suisse", currency: "CHF" },
+  { code: "LU", name: "Luxembourg", currency: "EUR" },
+  { code: "MC", name: "Monaco", currency: "EUR" },
   { code: "CA", name: "Canada", currency: "CAD" },
+  { code: "MU", name: "Maurice", currency: "MUR" },
+  { code: "SC", name: "Seychelles", currency: "SCR" },
 ] as const;
 
 export type CountryCode = (typeof COUNTRIES)[number]["code"];
@@ -37,15 +41,25 @@ export type CountryCode = (typeof COUNTRIES)[number]["code"];
 export const countryByCode = (code: string | null | undefined) =>
   COUNTRIES.find((c) => c.code === code?.toUpperCase()) ?? null;
 
-/** Libellé lisible d'une devise ; les francs CFA sont désignés comme on les nomme au quotidien. */
-export function currencyLabel(currency: string | null | undefined): string {
-  if (currency === "XOF" || currency === "XAF") return "FCFA";
-  return currency ?? "FCFA";
+/** Libellé lisible d'une devise, tel qu'on l'écrit au quotidien (null si le pays est inconnu). */
+export function currencyLabel(currency: string | null | undefined): string | null {
+  if (!currency) return null;
+  return ({ XOF: "FCFA", XAF: "FCFA", EUR: "€", CHF: "CHF", CAD: "$ CA" } as Record<string, string>)[currency] ?? currency;
 }
 
 /** « au Bénin », « en Côte d'Ivoire », « à Madagascar », « aux Comores ». */
 export function inCountry(name: string): string {
-  const special: Record<string, string> = { Madagascar: "à", Djibouti: "à", Comores: "aux", "RD Congo": "en", Haïti: "en", "Guinée-Bissau": "en" };
+  const special: Record<string, string> = {
+    Madagascar: "à",
+    Djibouti: "à",
+    Monaco: "à",
+    Maurice: "à",
+    Comores: "aux",
+    Seychelles: "aux",
+    "RD Congo": "en",
+    Haïti: "en",
+    "Guinée-Bissau": "en",
+  };
   const prep = special[name] ?? (/^[aeiouyéèê]/i.test(name) || /e$/.test(name) ? "en" : "au");
   return `${prep} ${name}`;
 }

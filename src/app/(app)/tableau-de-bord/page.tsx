@@ -125,7 +125,7 @@ function NextStep({ diagnostic, ideas, live }: NextStepProps) {
       <ActionCard
         icon={<Compass className="size-7" aria-hidden />}
         title="Faisons connaissance"
-        text="Une dizaine de questions qui s'adaptent à tes réponses, pour comprendre qui tu es et ce que tu veux construire."
+        text="Une dizaine de questions qui s'adaptent à tes réponses, pour comprendre qui tu es et ce que tu veux construire, où que tu vives."
         href="/diagnostic"
         cta="Commencer"
         extra={live}

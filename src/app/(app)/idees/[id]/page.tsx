@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, Clock, Flag, Lock, ShieldAlert, Sparkles, Target, Wallet } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Flag, Globe2, Lock, ShieldAlert, Sparkles, Target, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -28,8 +28,15 @@ export default async function IdeaPage({ params }: PageProps<"/idees/[id]">) {
 
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
-          <span className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
-            n°{idea.rank} · {RANK_LABELS[idea.rank]}
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
+              n°{idea.rank} · {RANK_LABELS[idea.rank]}
+            </span>
+            {idea.reach && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
+                <Globe2 className="size-3.5" aria-hidden /> {idea.reach}
+              </span>
+            )}
           </span>
           {idea.score !== null && <ScoreRing score={idea.score} size="lg" />}
         </div>
@@ -130,7 +137,7 @@ export default async function IdeaPage({ params }: PageProps<"/idees/[id]">) {
       {idea.breakdown && (
         <section aria-labelledby="score">
           <h2 id="score" className="text-2xl font-bold">Pourquoi ce score</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Chaque idée est notée sur six critères, pour toi et pour ton marché.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Chaque idée est notée sur six critères, pour toi et pour le marché qu&apos;elle vise.</p>
           <ul className="mt-4 flex flex-col gap-3">
             {idea.breakdown.map((c) => (
               <li key={c.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 sm:grid-cols-[14rem_minmax(0,1fr)_3rem]">

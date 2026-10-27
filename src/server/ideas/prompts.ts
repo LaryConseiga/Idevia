@@ -12,8 +12,8 @@ export function profileBrief(state: ProfileState, portrait: Omit<Portrait, "sour
   const country = countryByCode(s.market?.value.countryCode);
   const place = [s.market?.value.city, country?.name ?? s.market?.value.country].filter(Boolean).join(", ");
   const lines = [
-    `Lieu : ${place || "Afrique francophone (pays non précisé)"}${country ? `. Monnaie : ${currencyLabel(country.currency)}` : ""}.`,
-    s.market?.value.scope && `Clientèle visée : ${s.market.value.scope}.`,
+    `Vit : ${place || "pays non précisé (francophone)"}${country ? `. Monnaie : ${currencyLabel(country.currency)}` : ""}.`,
+    s.market?.value.scope && `Où elle ou il imagine ses clients : ${SCOPE_LABELS[s.market.value.scope]}.`,
     s.goal?.value.type && `Objectif : ${s.goal.value.type}${s.goal.value.horizon ? `, horizon ${s.goal.value.horizon}` : ""}${s.goal.value.incomeTarget ? `, revenu visé ${s.goal.value.incomeTarget}` : ""}.`,
     s.skills?.value.items.length && `Compétences : ${s.skills.value.items.join(", ")}.`,
     s.skills?.value.experience.length && `Expérience : ${s.skills.value.experience.join(" ; ")}.`,
@@ -40,10 +40,26 @@ N'invente aucun fait sur elle. Aucune activité illégale, dangereuse, réglemen
 ni de schéma pyramidal, de revente de données ou de promesse de revenus garantis.
 Réponds uniquement avec un objet JSON valide, sans texte autour.`;
 
+const SCOPE_LABELS = {
+  local: "près de chez elle ou lui",
+  national: "dans tout son pays",
+  online: "en ligne, n'importe où",
+  cross_border: "entre deux pays (diaspora, import-export)",
+  international: "à l'international",
+} as const;
+
 const where = (state: ProfileState) => {
   const country = countryByCode(state.slots.market?.value.countryCode);
-  return country ? inCountry(country.name) : "en Afrique francophone";
+  return country ? `qui vit ${inCountry(country.name)}` : "francophone (pays non précisé)";
 };
+
+/** La personne ne veut que des clients proches : on respecte, sinon on ouvre le champ. */
+const localOnly = (state: ProfileState) => state.slots.market?.value.scope === "local";
+
+const REACH_RULE = `Le lieu de vie de la personne fixe sa monnaie, ses coûts et ses démarches, PAS les limites de son marché.
+Ses clients peuvent être près de chez elle, dans tout son pays, en ligne n'importe où dans le monde francophone,
+ou entre deux pays (diaspora, import-export, services à distance). Une personne à Dakar peut vendre à Paris,
+une personne à Bruxelles peut servir Abidjan.`;
 
 // ---------------------------------------------------------------- Générateurs
 
@@ -52,27 +68,38 @@ export function generatorPrompt(input: { brief: string; state: ProfileState; ang
     input.angle === "ancrage"
       ? `Angle : pars de ce que la personne sait DÉJÀ faire et de son réseau. Des idées qu'elle peut lancer dans le mois,
 avec ses moyens actuels, et vendre à des clients qu'elle peut nommer.`
-      : `Angle : sois plus inventif. Croise ses compétences avec un besoin local mal servi, un nouveau canal (WhatsApp Business,
-TikTok, livraison, abonnement, B2B) ou une niche que peu de gens occupent. Reste réaliste avec son budget.`;
+      : `Angle : sois plus inventif. Croise ses compétences avec un besoin mal servi, près de chez elle ou ailleurs :
+vente en ligne, services à distance, contenu, formation, abonnement, B2B, pont entre deux pays, niche que peu de gens
+occupent. Reste réaliste avec son budget.`;
 
-  const system = `Tu es un conseiller en création d'activité qui connaît très bien les marchés d'Afrique francophone :
-marchés, tontines, mobile money, WhatsApp, boutiques de quartier, entreprises et administrations, diaspora.
+  const reach = localOnly(input.state)
+    ? "La personne veut des clients près de chez elle : respecte ce choix."
+    : `Au moins ${input.angle === "ancrage" ? "deux" : "trois"} idées doivent fonctionner au-delà de sa ville (en ligne, dans tout le pays ou entre deux pays).`;
+
+  const system = `Tu es un conseiller en création d'activité qui connaît très bien les marchés francophones :
+Afrique de l'Ouest et centrale, Maghreb, France, Belgique, Suisse, Canada, et le commerce en ligne entre eux.
+Tu connais leurs habitudes (mobile money, WhatsApp, tontines, marchés ; Instagram, plateformes de freelances,
+marketplaces, statuts d'auto-entrepreneur…) et les diasporas qui les relient.
 ${SAFETY}
 
-Propose ${input.count} idées de business DIFFÉRENTES les unes des autres pour cette personne, qui vit ${where(input.state)}.
+${REACH_RULE}
+
+Propose ${input.count} idées de business DIFFÉRENTES les unes des autres pour cette personne ${where(input.state)}.
 ${angle}
+${reach}
 
 Chaque idée doit :
 - s'appuyer explicitement sur au moins un élément du profil (compétence, atout, motivation, contrainte) ;
 - tenir dans le budget et le temps disponibles ;
-- viser des clients précis et joignables localement ;
-- avoir un modèle de revenu clair, avec un prix réaliste dans la monnaie locale.
+- viser des clients précis, et dire comment les atteindre ;
+- avoir un modèle de revenu clair, avec un prix réaliste dans la monnaie de ses clients.
 Pas deux idées de la même famille de modèle économique.
+"reach" : "local" (près de chez elle), "national", "online" (en ligne, n'importe où) ou "cross_border" (entre deux pays).
 
 Format :
 {"ideas":[{"title":"nom court et concret","pitch":"l'idée en une ou deux phrases","customer":"qui paie, précisément",
 "offer":"ce qui est vendu","revenueModel":"comment l'argent rentre","startCost":"coût de départ estimé avec la monnaie",
-"family":"famille de modèle (ex. : livraison de repas aux bureaux)","whyFit":"pourquoi c'est fait pour cette personne"}]}`;
+"family":"famille de modèle (ex. : livraison de repas aux bureaux)","reach":"online","whyFit":"pourquoi c'est fait pour cette personne"}]}`;
 
   return { system, user: `<profil>\n${input.brief}\n</profil>` };
 }
@@ -80,12 +107,16 @@ Format :
 // ---------------------------------------------------------------- Juge
 
 export function judgePrompt(input: { brief: string; state: ProfileState; candidates: Candidate[] }) {
-  const system = `Tu es un investisseur de terrain exigeant et bienveillant, spécialiste des petites entreprises ${where(input.state)}.
+  const system = `Tu es un investisseur de terrain exigeant et bienveillant, spécialiste des petites entreprises francophones,
+en Afrique, en Europe et en ligne. Tu évalues des idées pour une personne ${where(input.state)}.
 ${SAFETY}
 
-Note chaque idée de 0 à 10 sur six critères, pour CETTE personne et CE marché :
+${REACH_RULE}
+
+Note chaque idée de 0 à 10 sur six critères, pour CETTE personne et le marché que l'idée vise :
 - skills : elle sait déjà faire l'essentiel (10) ou doit tout apprendre (0) ;
-- demand : des clients locaux paient déjà pour ça ou un besoin évident existe (10), ou la demande est hypothétique (0) ;
+- demand : sur le marché visé (local, national, en ligne ou entre deux pays), des clients paient déjà pour ça ou un besoin
+  évident existe (10), ou la demande est hypothétique (0). Ne pénalise pas une idée parce qu'elle vise des clients ailleurs ;
 - resources : faisable avec son budget et son temps (10), ou hors de portée (0) ;
 - motivation : colle à ce qui la motive et à ses valeurs (10), ou va contre (0) ;
 - speed : premier client payant possible en moins de 30 jours (10), ou dans plus de 6 mois (0) ;
@@ -100,7 +131,7 @@ Format :
   const list = input.candidates
     .map(
       (c, i) =>
-        `#${i} ${c.title}\n${c.pitch}\nClients : ${c.customer}. Offre : ${c.offer}. Revenu : ${c.revenueModel}. Départ : ${c.startCost}.`,
+        `#${i} ${c.title} [${c.reach}]\n${c.pitch}\nClients : ${c.customer}. Offre : ${c.offer}. Revenu : ${c.revenueModel}. Départ : ${c.startCost}.`,
     )
     .join("\n\n");
 
@@ -116,15 +147,19 @@ export function writerPrompt(input: {
   judgement: Judgement | null;
   rank: number;
 }) {
-  const system = `Tu es un coach d'entrepreneurs ${where(input.state)} et un excellent rédacteur.
-Tu écris la fiche d'une idée de business et son plan d'action des 30 premiers jours, pour une personne précise.
+  const system = `Tu es un coach d'entrepreneurs francophones, en Afrique, en Europe et en ligne, et un excellent rédacteur.
+Tu écris la fiche d'une idée de business et son plan d'action des 30 premiers jours, pour une personne ${where(input.state)}.
 ${SAFETY}
 
 Le ton :
 - tutoiement, chaleureux, direct, comme un grand frère ou une grande sœur qui s'y connaît ;
 - des phrases vivantes et concrètes, pas de jargon, pas de listes à tirets dans les textes : des petits paragraphes ;
-- des chiffres réalistes et prudents (« environ », « compte »), dans la monnaie locale ;
-- des lieux, des canaux et des habitudes locales (marché, quartier, WhatsApp, groupes Facebook, mobile money…) ;
+- des chiffres réalistes et prudents (« environ », « compte »), dans la monnaie de la personne, et dans celle de ses
+  clients si elle est différente ;
+- des canaux et des habitudes qui marchent sur le marché visé : WhatsApp et mobile money à Abidjan, Instagram et
+  plateformes en ligne à Paris, groupes de la diaspora pour un pont entre deux pays… ;
+- si une démarche administrative est nécessaire dans son pays (statut d'auto-entrepreneur, déclaration, autorisation),
+  mentionne-la simplement, sans faire peur ;
 - reprends les mots de la personne quand c'est naturel, sans la flatter.
 
 Le plan : 4 à 5 étapes qui couvrent les 30 premiers jours. Chaque étape a une période (« Jours 1 à 3 »), un titre
@@ -149,6 +184,7 @@ ${input.brief}
 
 Idée retenue (n°${input.rank} sur 3 pour cette personne) :
 ${c.title}. ${c.pitch}
+Portée : ${c.reach}.
 Clients : ${c.customer}. Offre : ${c.offer}. Revenu : ${c.revenueModel}. Coût de départ : ${c.startCost}.
 Pourquoi elle : ${c.whyFit}${input.judgement?.note ? `\nAvis de l'évaluateur : ${input.judgement.note}` : ""}`;
 

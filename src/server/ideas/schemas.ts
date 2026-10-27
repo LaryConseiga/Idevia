@@ -13,6 +13,16 @@ const text = (max: number, min = 1) =>
 
 // ---------------------------------------------------------------- 1. Candidates (générateurs)
 
+export const REACHES = ["local", "national", "online", "cross_border"] as const;
+export type Reach = (typeof REACHES)[number];
+
+export const REACH_LABELS: Record<Reach, string> = {
+  local: "Près de chez toi",
+  national: "Dans tout ton pays",
+  online: "En ligne, sans frontière",
+  cross_border: "Entre deux pays",
+};
+
 export const candidateSchema = z.object({
   title: text(80, 3),
   pitch: text(300, 10),
@@ -22,6 +32,8 @@ export const candidateSchema = z.object({
   startCost: text(120),
   /** Famille de modèle économique, pour éviter de garder trois variantes de la même idée. */
   family: text(60),
+  /** Où sont les clients : une idée n'est pas limitée au lieu de vie de la personne. */
+  reach: z.enum(REACHES).catch("local"),
   whyFit: text(300),
 });
 
@@ -40,7 +52,7 @@ const note = z.coerce.number().min(0).max(10).catch(5);
 
 export const CRITERIA = {
   skills: { label: "Tes compétences", weight: 0.22 },
-  demand: { label: "La demande près de chez toi", weight: 0.22 },
+  demand: { label: "La demande sur le marché visé", weight: 0.22 },
   resources: { label: "Ton budget et ton temps", weight: 0.2 },
   motivation: { label: "Ce qui te motive", weight: 0.14 },
   speed: { label: "Premiers revenus rapides", weight: 0.12 },

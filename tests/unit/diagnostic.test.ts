@@ -57,6 +57,19 @@ describe("entretien sans modèle (repli déterministe)", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it("propose les budgets dans la devise du pays (euros en France)", async () => {
+    let state = emptyProfile();
+    state = { ...state, slots: { ...state.slots, market: { value: { countryCode: "FR", country: "France", city: null, scope: "online" }, confidence: 2, source: "user" } } };
+    const { materialize, fallbackByKey } = await import("@/server/diagnostic/fallback");
+    const q = materialize(fallbackByKey("resources-budget")!, "fb:resources-budget", state);
+    expect(q.options[0].label).toBe("Moins de 500 €");
+  });
+
+  it("demande où sont les clients, pas seulement où vit la personne", async () => {
+    const { history } = await runInterview(noModel);
+    expect(history.map((h) => h.question.id)).toContain("fb:market-scope");
+  });
+
   it("propose les montants en FCFA pour un pays de la zone franc", async () => {
     const { history } = await runInterview(noModel);
     const budget = history.find((h) => h.question.id === "fb:resources-budget");
@@ -67,7 +80,7 @@ describe("entretien sans modèle (repli déterministe)", () => {
     const { state, history } = await runInterview(noModel);
     const portrait = await buildPortrait({ state, history, generate: noModel });
     expect(portrait.source).toBe("fallback");
-    expect(portrait.headline).toContain("au Bénin");
+    expect(portrait.headline).toContain("en Côte d'Ivoire");
     expect(portrait.summary).toContain("Je cuisine bien");
   });
 });
@@ -203,6 +216,13 @@ describe("garde-fous sur les questions", () => {
 });
 
 describe("pseudonymisation avant envoi au modèle", () => {
+  it("masque aussi les numéros européens, sans toucher aux montants en euros", () => {
+    const out = scrubPersonalData("Appelle-moi au +33 6 12 34 56 78 ou au 0470 12 34 56. Budget : 12 000 € ou 15 000 CHF.");
+    expect(out).not.toMatch(/12 34 56/);
+    expect(out).toContain("12 000 €");
+    expect(out).toContain("15 000 CHF");
+  });
+
   it("masque emails, téléphones et liens mais garde les montants", () => {
     const out = scrubPersonalData(
       "Écris-moi à awa.ouedraogo@mail.com ou au +226 70 12 34 56, voir https://x.com/awa. Budget : 1 500 000 FCFA.",

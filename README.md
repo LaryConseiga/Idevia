@@ -1,7 +1,7 @@
 # Idevia
 
 De ton idée à ton premier projet concret. SaaS francophone d'accompagnement entrepreneurial,
-priorité Afrique francophone. Architecture : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+pour les francophones d'Afrique, d'Europe et d'ailleurs. Architecture : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 Design system : [design-system/idevia/MASTER.md](design-system/idevia/MASTER.md).
 
 ## Démarrer

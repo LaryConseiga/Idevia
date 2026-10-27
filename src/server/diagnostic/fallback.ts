@@ -49,15 +49,18 @@ export const OPENING: FallbackQuestion = {
   apply: (a) => ({ motivations: { value: { why: a.text.slice(0, 400), values: [] }, confidence: 1, source: "user" } }),
 };
 
-const AFRICA_FIRST = COUNTRIES.slice(0, 11);
+/** Un échantillon large : Afrique, Europe et Amérique francophones (« Autre » reste possible). */
+const PICKED = ["CI", "SN", "CM", "BF", "BJ", "TG", "ML", "GN", "CD", "MA", "FR", "BE", "CH", "CA"];
+const COUNTRY_OPTIONS = PICKED.map((code) => COUNTRIES.find((c) => c.code === code)!).map((c) => ({ value: c.code, label: c.name }));
 
 const BANK: FallbackQuestion[] = [
   {
     key: "market-country",
     intent: "market",
     kind: "single",
-    prompt: "Dans quel pays veux-tu lancer ton activité ?",
-    options: [...AFRICA_FIRST.map((c) => ({ value: c.code, label: c.name })), { ...UNSURE }],
+    prompt: "Dans quel pays vis-tu aujourd'hui ?",
+    why: "Pour parler dans ta monnaie et tenir compte des démarches de ton pays. Tes idées ne seront pas limitées à cet endroit.",
+    options: [...COUNTRY_OPTIONS, { ...UNSURE }],
     allowOther: true,
     apply: (a, state) => {
       const country = countryByCode(a.choices[0]);
@@ -71,7 +74,8 @@ const BANK: FallbackQuestion[] = [
             city: prev?.city ?? null,
             scope: prev?.scope ?? null,
           },
-          confidence: country || a.text ? 2 : 1,
+          // Le terrain n'est clair qu'une fois connue aussi la portée visée (près de chez soi, en ligne…).
+          confidence: (country || a.text) && prev?.scope ? 2 : 1,
           source: "user",
         },
       };
@@ -81,10 +85,16 @@ const BANK: FallbackQuestion[] = [
     key: "market-scope",
     intent: "market",
     kind: "single",
-    prompt: "Tes premiers clients, tu les vois plutôt…",
-    options: opts(["Dans mon quartier ou ma ville", "Dans tout le pays", "À l'international, en ligne"]),
+    prompt: "Tes futurs clients, tu les imagines plutôt…",
+    options: opts([
+      "Près de chez moi",
+      "Partout dans mon pays",
+      "En ligne, n'importe où",
+      "Entre deux pays (diaspora, import-export…)",
+    ]),
     apply: (a, state) => {
-      const scope = ({ f1: "local", f2: "national", f3: "international" } as const)[a.choices[0] as "f1"] ?? null;
+      const scope =
+        ({ f1: "local", f2: "national", f3: "online", f4: "cross_border" } as const)[a.choices[0] as "f1"] ?? null;
       const prev = slot(state, "market");
       return {
         market: {
@@ -261,12 +271,17 @@ const BANK: FallbackQuestion[] = [
   },
 ];
 
+const BUDGETS: Record<string, string[]> = {
+  FCFA: ["Moins de 50 000 FCFA", "50 000 à 250 000 FCFA", "250 000 à 1 000 000 FCFA", "Plus de 1 000 000 FCFA"],
+  "€": ["Moins de 500 €", "500 à 2 000 €", "2 000 à 10 000 €", "Plus de 10 000 €"],
+  CHF: ["Moins de 500 CHF", "500 à 2 000 CHF", "2 000 à 10 000 CHF", "Plus de 10 000 CHF"],
+  "$ CA": ["Moins de 750 $ CA", "750 à 3 000 $ CA", "3 000 à 15 000 $ CA", "Plus de 15 000 $ CA"],
+};
+
 function budgetOptions(state: ProfileState): Option[] {
   const unit = currencyLabel(countryByCode(state.slots.market?.value.countryCode)?.currency);
-  if (unit === "FCFA") {
-    return opts(["Moins de 50 000 FCFA", "50 000 à 250 000 FCFA", "250 000 à 1 000 000 FCFA", "Plus de 1 000 000 FCFA"]);
-  }
-  return opts([`Presque rien`, `Un petit budget (${unit})`, `Un budget moyen (${unit})`, `Un budget important (${unit})`]);
+  if (unit && BUDGETS[unit]) return opts(BUDGETS[unit]);
+  return opts(["Presque rien", "Un petit budget", "Un budget moyen", "Un budget important"]);
 }
 
 /** Transforme une entrée de la banque en question affichable. */

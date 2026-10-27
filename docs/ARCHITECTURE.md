@@ -289,19 +289,24 @@ La répartition du catalogue (niches où de nombreux outils existent, ce qu'on a
 le générateur d'idées en exemples concrets, notamment pour les profils techniques (micro-SaaS, service de données,
 automatisation pour PME).
 
-### 5.5. Priorité Afrique francophone
+### 5.5. Public : les francophones, en Afrique, en Europe et ailleurs (élargi le 27/10/2026)
 
-- Le diagnostic demande le **pays et la ville**. Les budgets sont exprimés dans la devise locale
-  (XOF, XAF, GNF, CDF, MAD…) avec des fourchettes adaptées au pays.
-- Les canaux proposés tiennent compte du terrain : WhatsApp Business, Facebook et TikTok, Mobile Money,
-  vente de proximité, marchés, réseaux communautaires et tontines.
-- Les idées tiennent compte du contexte : accès à Internet, à l'électricité et aux matériaux, formalisation
-  progressive (secteur informel accepté comme point de départ), cadre OHADA pour le statut juridique, présenté
-  comme une piste à vérifier et jamais comme un conseil juridique.
+- Public visé : l'Afrique francophone, l'Europe francophone (France, Belgique, Suisse, Luxembourg, Monaco),
+  le Canada et l'océan Indien. Le diagnostic demande **où vit la personne** et, séparément, **où elle imagine ses
+  clients** : près de chez elle, dans tout son pays, en ligne, ou entre deux pays (diaspora, import-export).
+- **Le lieu de vie ne limite pas les idées.** Il fixe la monnaie, les coûts et les démarches, pas le marché.
+  Les générateurs doivent proposer des idées au-delà de la ville (en ligne, nationales, transfrontalières), et la
+  sélection garde au moins une idée de ce type parmi les trois si elle est presque aussi bien notée (12 points
+  d'écart au plus), sauf si la personne a dit vouloir des clients proches. Chaque idée affiche sa portée.
+- Budgets dans la devise du pays de résidence (FCFA, €, CHF, $ CA…), avec des fourchettes adaptées.
+- Canaux adaptés au marché visé : WhatsApp Business et Mobile Money en Afrique de l'Ouest, Instagram,
+  marketplaces et plateformes de freelances en Europe, groupes de la diaspora pour un pont entre deux pays.
+- Démarches présentées comme des pistes à vérifier, jamais comme un conseil juridique : secteur informel accepté
+  comme point de départ et cadre OHADA en Afrique, micro-entreprise en France, indépendant complémentaire en Belgique…
 - **Performance sur réseau lent et téléphones d'entrée de gamme** : objectif de JS initial inférieur à 150 Ko
-  sur les pages clés, images légères, mode économie de données, PWA qui charge le shell hors-ligne.
-- Protection des données : au-delà du RGPD (serveurs dans l'UE), respect des lois nationales (CDP Sénégal,
-  ARTCI Côte d'Ivoire, CIL Burkina Faso, etc.) à mentionner dans la politique de confidentialité.
+  sur les pages clés, images légères, PWA qui charge le shell hors-ligne.
+- Protection des données : RGPD (serveurs dans l'UE) et lois nationales (CDP Sénégal, ARTCI Côte d'Ivoire,
+  CIL Burkina Faso, LPD Suisse, Loi 25 Québec…) à mentionner dans la politique de confidentialité.
 
 ### 5.6. Ce qui rend chaque utilisateur unique
 

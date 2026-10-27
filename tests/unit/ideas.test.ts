@@ -6,7 +6,7 @@ import type { Candidate, IdeaContent, Judgement } from "@/server/ideas/schemas";
 
 vi.mock("server-only", () => ({}));
 
-const candidate = (title: string, family: string): Candidate => ({
+const candidate = (title: string, family: string, reach: Candidate["reach"] = "local"): Candidate => ({
   title,
   pitch: `${title} pour les gens du quartier.`,
   customer: "Les employés de bureau",
@@ -14,6 +14,7 @@ const candidate = (title: string, family: string): Candidate => ({
   revenueModel: "Vente à l'unité",
   startCost: "50 000 FCFA",
   family,
+  reach,
   whyFit: "Tu cuisines bien.",
 });
 
@@ -82,6 +83,22 @@ describe("score et sélection", () => {
   it("complète avec la même famille s'il n'y a pas assez de diversité", () => {
     const candidates = [candidate("A", "repas"), candidate("B", "repas"), candidate("C", "repas")];
     expect(select(candidates, null).picked).toHaveLength(3);
+  });
+
+  it("garde au moins une idée au-delà du lieu de vie si elle est presque aussi bien notée", () => {
+    const candidates = [
+      candidate("Traiteur", "repas"),
+      candidate("Jus", "boissons"),
+      candidate("Cours", "formation"),
+      candidate("Épices vendues à la diaspora", "export", "cross_border"),
+    ];
+    const judgements = [judge(0, 9, "repas"), judge(1, 8, "boissons"), judge(2, 7, "formation"), judge(3, 6.2, "export")];
+    expect(select(candidates, judgements).picked.map((p) => p.candidate.title)).toEqual(["Traiteur", "Jus", "Épices vendues à la diaspora"]);
+    // La personne ne veut que des clients proches : on respecte.
+    expect(select(candidates, judgements, { localOnly: true }).picked.at(-1)?.candidate.title).toBe("Cours");
+    // Trop loin derrière (plus de 12 points) : on ne force pas.
+    const weak = [...judgements.slice(0, 3), judge(3, 4, "export")];
+    expect(select(candidates, weak).picked.at(-1)?.candidate.title).toBe("Cours");
   });
 
   it("fusionne les doublons proposés par les deux générateurs", () => {

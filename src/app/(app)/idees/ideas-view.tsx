@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, Clock, Compass, Lightbulb, Lock, PenLine, RefreshCw, Scale, Sparkles, Target, Wallet } from "lucide-react";
+import { ArrowRight, Check, Clock, Compass, Globe2, Lightbulb, Lock, PenLine, RefreshCw, Scale, Sparkles, Target, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -64,7 +64,7 @@ function NeedDiagnostic() {
 
 const STEPS = [
   { icon: Lightbulb, title: "J'imagine une douzaine d'idées", text: "Deux modèles d'IA différents, à partir de ton portrait." },
-  { icon: Scale, title: "Je les compare une à une", text: "Tes compétences, ton budget, ton temps, la demande près de chez toi." },
+  { icon: Scale, title: "Je les compare une à une", text: "Tes compétences, ton budget, ton temps, et la demande là où sont tes clients." },
   { icon: PenLine, title: "Je t'écris un plan", text: "Pour les 3 meilleures : quoi faire, jour après jour, pendant 30 jours." },
 ];
 
@@ -77,8 +77,8 @@ function Start({ quotaLeft, failure }: { quotaLeft: number; failure?: string }) 
         Trois idées faites pour toi, pas une liste sans fin.
       </h1>
       <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-        Je cherche large, puis je ne garde que les trois idées qui collent vraiment à ton portrait, classées de la
-        plus adaptée à la moins adaptée.
+        Je cherche large, près de chez toi comme en ligne ou entre deux pays, puis je ne garde que les trois idées qui
+        collent vraiment à ton portrait, classées de la plus adaptée à la moins adaptée.
       </p>
 
       <ol className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -116,7 +116,7 @@ function Start({ quotaLeft, failure }: { quotaLeft: number; failure?: string }) 
 
 const PHASES = [
   { after: 0, text: "J'imagine une douzaine d'idées à partir de ton portrait…" },
-  { after: 25, text: "Je les compare une à une : tes compétences, ton budget, la demande près de chez toi…" },
+  { after: 25, text: "Je les compare une à une : tes compétences, ton budget, la demande là où sont tes clients…" },
   { after: 45, text: "J'écris le plan d'action des trois meilleures…" },
   { after: 100, text: "J'y suis presque, je relis tout…" },
 ];
@@ -226,6 +226,11 @@ function IdeaCard({ idea, featured = false }: { idea: IdeaCardView; featured?: b
           >
             n°{idea.rank} · {RANK_LABELS[idea.rank]}
           </span>
+          {idea.reach && (
+            <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
+              <Globe2 className="size-3.5" aria-hidden /> {idea.reach}
+            </span>
+          )}
           {idea.selected && (
             <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success">
               <Check className="size-3.5" aria-hidden /> Ton choix

@@ -11,7 +11,7 @@ export default function robots(): MetadataRoute.Robots {
         "/admin",
         "/tableau-de-bord",
         "/idees",
-        "/projets",
+        "/projet",
         "/assistant",
         "/compte",
         "/diagnostic",

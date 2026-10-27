@@ -50,6 +50,8 @@ const schema = z.object({
   AI_MODEL_MISTRAL: z.string().default("ministral-8b-latest"),
 
   APIFY_TOKEN: z.string().optional(),
+  /** Vérifications terrain par mois et par compte (chacune coûte environ 0,10 $ de crédits Apify hors cache). */
+  FIELD_CHECKS_MONTHLY_QUOTA: z.coerce.number().int().min(1).max(20).default(2),
 
   /**
    * Offre payante (désactivée au lancement) : quand elle est active, un compte gratuit ne voit en entier que

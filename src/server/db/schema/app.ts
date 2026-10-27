@@ -174,6 +174,7 @@ export const businessIdeas = pgTable(
 
 export const projectStatus = pgEnum("project_status", ["active", "archived"]);
 
+/** Un seul projet actif par personne : index unique partiel créé dans drizzle/0007_field_checks_rls.sql. */
 export const projects = pgTable(
   "projects",
   {
@@ -201,6 +202,7 @@ export const validations = pgTable(
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
     userId: userRef(),
+    fieldCheckId: uuid("field_check_id").references(() => fieldChecks.id, { onDelete: "set null" }),
     hypothesis: text("hypothesis").notNull(),
     testDescription: text("test_description"),
     successCriteria: text("success_criteria"),
@@ -210,6 +212,31 @@ export const validations = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [index("validations_project_id_idx").on(t.projectId)],
+);
+
+/**
+ * Vérification terrain : signaux de marché collectés (Apify) puis lus par un modèle.
+ * Le rapport est chiffré ; les signaux bruts, publics et agrégés, vivent dans le cache `market_signals`.
+ */
+export const fieldCheckStatus = pgEnum("field_check_status", ["running", "ready", "failed"]);
+
+export const fieldChecks = pgTable(
+  "field_checks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: userRef(),
+    status: fieldCheckStatus("status").notNull().default("running"),
+    errorCode: text("error_code"),
+    reportEnc: text("report_enc"),
+    /** Sources utilisées, coûts estimés, modèles : aucune donnée personnelle. */
+    trace: jsonb("trace"),
+    createdAt: createdAt(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [index("field_checks_project_idx").on(t.projectId, t.createdAt), index("field_checks_user_idx").on(t.userId, t.createdAt)],
 );
 
 export const businessPlans = pgTable(
@@ -241,6 +268,8 @@ export const tasks = pgTable(
       .references(() => projects.id, { onDelete: "cascade" }),
     userId: userRef(),
     title: text("title").notNull(),
+    /** Repère lisible issu du plan (« Jours 4 à 7 »). */
+    period: text("period"),
     description: text("description"),
     expectedResult: text("expected_result"),
     priority: taskPriority("priority").notNull().default("medium"),

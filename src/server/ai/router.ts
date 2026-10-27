@@ -9,7 +9,7 @@ import { ProviderError, type ChatMessage, type ChatRequest, type ChatResult, typ
  * Ce module est pur (dépendances injectées) pour être testé sans réseau.
  */
 
-export type Task = "interview" | "portrait" | "ideation" | "ideation_alt" | "judge" | "plan" | "assistant";
+export type Task = "interview" | "portrait" | "ideation" | "ideation_alt" | "judge" | "plan" | "validation" | "assistant";
 
 /**
  * Choix mesurés le 27/10/2026 sur de vraies tâches en français (voir docs/ARCHITECTURE.md §2.1).
@@ -33,6 +33,8 @@ export const CHAINS: Record<Task, ProviderId[]> = {
   judge: ["groq_reasoning", "gemini_lite", "openrouter"],
   // Rédaction : voir WRITER_CHAINS (une voie différente par idée).
   plan: ["groq_reasoning", "gemini_lite", "gemini"],
+  // Lecture des signaux de marché : Flash Lite propose des tests plus concrets et adaptés au terrain que gpt-oss.
+  validation: ["gemini_lite", "groq_reasoning", "gemini"],
   assistant: ["groq_fast", "gemini_lite", "groq_reasoning", "mistral"],
 };
 

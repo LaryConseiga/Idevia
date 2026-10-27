@@ -6,6 +6,7 @@ import { businessIdeas, ideaBatches } from "@/server/db/schema";
 import type { GeneratedIdea, PipelineTrace } from "@/server/ideas/pipeline";
 import type { IdeaContent, Reach, ScoreBreakdown } from "@/server/ideas/schemas";
 import { withUser } from "./context";
+import { activateProjectForIdea } from "./projects";
 
 /** Au-delà, un lot « en cours » est considéré comme interrompu (instance coupée, déploiement…). */
 const RUNNING_TIMEOUT_MS = 6 * 60 * 1000;
@@ -173,7 +174,7 @@ export function failBatch(userId: string, batchId: string, errorCode: string) {
   });
 }
 
-/** L'utilisateur choisit son idée : une seule à la fois. */
+/** L'utilisateur choisit son idée : une seule à la fois, et son projet (plan en tâches) devient le projet actif. */
 export function selectIdea(userId: string, ideaId: string): Promise<boolean> {
   return withUser(userId, async (tx) => {
     const [idea] = await tx
@@ -186,6 +187,7 @@ export function selectIdea(userId: string, ideaId: string): Promise<boolean> {
       .set({ status: "suggested" })
       .where(and(eq(businessIdeas.userId, userId), eq(businessIdeas.status, "selected")));
     await tx.update(businessIdeas).set({ status: "selected" }).where(eq(businessIdeas.id, ideaId));
+    await activateProjectForIdea(tx, userId, ideaId);
     return true;
   });
 }

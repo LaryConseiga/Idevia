@@ -306,6 +306,32 @@ Règles :
 - Les données collectées sont traitées comme **non fiables** (protection contre l'injection de prompt) :
   passées au modèle dans un bloc délimité, jamais interprétées comme des instructions.
 
+### 5.3.1. Mise en œuvre (phase 4, 27/10/2026)
+
+Trois sources retenues après essais réels (Abidjan et Lyon), dans `src/server/market/` :
+
+| Source | Actor | Coût mesuré | Durée | Quand |
+|---|---|---|---|---|
+| Concurrents proches | `compass~google-maps-extractor` (20 lieux, 1 Go) | ~0,10 $ max, souvent moins | 60 à 90 s | idée locale ou nationale, ville connue |
+| Demande et concurrents en ligne | `apify~google-search-scraper` (1 page, pays visé) | ~0,005 $ | 7 à 60 s | toujours |
+| Publicités actives | `curious_coder~facebook-ads-library-scraper` (30 annonces) | ~0,02 $ | 10 à 90 s | toujours |
+
+Écartés : Google Trends (presque que des zéros hors Europe sur des niches), le crawler Google Maps complet (4 Go, dépasse
+2 minutes). Une vérification complète coûte 0,03 à 0,11 $ et prend 45 à 100 s.
+
+- Un modèle choisit d'abord les trois requêtes (nom courant d'un concurrent, ce que tape un client, mots-clés publicitaires).
+- Les runs sont lancés en parallèle, arrêtés à 60-90 s ; les résultats partiels sont gardés. Une source en échec n'arrête
+  pas la vérification ; sans aucune source, elle échoue proprement et n'est pas décomptée.
+- Normalisation : agrégats uniquement (nombre, notes, catégories, noms commerciaux, titres et domaines), jamais de
+  téléphone, site, adresse précise ni e-mail ; textes passés par `scrubPersonalData`.
+- Cache partagé `market_signals` de 30 jours par (actor, requête normalisée, pays, ville), lisible par l'utilisateur
+  seulement via `project_market_signals` (RLS).
+- Le rapport (Flash Lite, puis gpt-oss) ne s'appuie que sur les signaux, numérotés : chaque constat cite sa source ; une
+  source inexistante est retirée. Il produit demande et concurrence (niveau + texte), un angle pour se démarquer et
+  3 hypothèses (test concret + critère de réussite) enregistrées dans `validations`.
+- Garde-fous : `FIELD_CHECKS_MONTHLY_QUOTA` (2 par défaut), arrêt à 90 % des crédits Apify du mois (`/users/me/limits`),
+  limitation de fréquence, verrou par utilisateur. Offre payante active : suivi et terrain réservés à Pro.
+
 ### 5.4. Usage 3 : inspiration pour l'idéation
 
 La répartition du catalogue (niches où de nombreux outils existent, ce qu'on automatise souvent) alimente
@@ -523,7 +549,7 @@ Tests automatisés : l'utilisateur A tente de lire, modifier ou supprimer chaque
 | 1 | Socle : Next.js, Neon, Drizzle, Better Auth, DAL + RLS, en-têtes de sécurité, PWA | App déployée en preview avec comptes isolés |
 | 2 | Diagnostic adaptatif + miroir | Entretien complet, anonyme puis rattaché au compte |
 | 3 | Ingestion du catalogue + signaux de marché + génération d'idées | 3 idées personnalisées, sourcées, comparables |
-| 4 | Validation, plan de lancement, tâches 30 jours, tableau de bord | Parcours principal opérationnel |
+| 4 | Validation, plan de lancement, tâches 30 jours, tableau de bord | Parcours principal opérationnel (livré le 27/10/2026 : page « Mon projet », vérification terrain) |
 | 5 | Assistant contextualisé + mémoire de projet + emails | Accompagnement continu |
 | 6 | Admin : rôles, 2FA, analytics, entonnoir, coûts, blog | Back-office utilisable |
 | 7 | SEO, pages légales, tests e2e et sécurité, domaine name.com | MVP en production |

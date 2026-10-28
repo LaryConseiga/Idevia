@@ -171,4 +171,18 @@ export function weakestDimension(state: ProfileState, exclude: Dimension[] = [])
   return first && confidenceOf(state, first) < 3 ? first : null;
 }
 
-export const requiredSatisfied = (state: ProfileState) => REQUIRED.every((d) => confidenceOf(state, d) >= 2);
+/**
+ * Les moyens se demandent en trois questions séparées (budget, temps, matériel) : la dimension n'est complète
+ * que lorsque les trois sont connus.
+ */
+export function missingResources(state: ProfileState): ("budget" | "time" | "assets")[] {
+  const r = state.slots.resources?.value;
+  const missing: ("budget" | "time" | "assets")[] = [];
+  if (!r?.budgetRange) missing.push("budget");
+  if (r?.hoursPerWeek === null || r?.hoursPerWeek === undefined) missing.push("time");
+  if (!r?.assets?.length) missing.push("assets");
+  return missing;
+}
+
+export const requiredSatisfied = (state: ProfileState) =>
+  REQUIRED.every((d) => confidenceOf(state, d) >= 2) && missingResources(state).length === 0;

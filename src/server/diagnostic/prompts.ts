@@ -1,6 +1,6 @@
 import { countryByCode, currencyLabel } from "@/lib/countries";
 import { scrubPersonalData } from "@/server/ai/scrub";
-import { DIMENSION_LABELS, DIMENSIONS, REQUIRED, type ProfileState } from "./profile";
+import { DIMENSION_LABELS, DIMENSIONS, missingResources, REQUIRED, type ProfileState } from "./profile";
 import type { Question } from "./question";
 
 /** Incrémenter à chaque changement de prompt : stocké avec le diagnostic pour comparer les versions. */
@@ -14,9 +14,11 @@ function profileForModel(state: ProfileState) {
     DIMENSIONS.filter((d) => state.slots[d]).map((d) => [d, { ...state.slots[d], value: compact(state.slots[d]!.value) }]),
   );
   const unknown = DIMENSIONS.filter((d) => !state.slots[d]);
+  const resources = missingResources(state);
   return {
     connu: known,
     inconnu: unknown,
+    ...(resources.length ? { moyens_a_demander: resources } : {}),
     ...(state.insights.length ? { observations: state.insights } : {}),
     ...(state.contradictions.length ? { contradictions: state.contradictions } : {}),
     ...(state.corrections.length ? { corrections_utilisateur: state.corrections } : {}),
@@ -90,6 +92,11 @@ Confiance : 0 = inconnu ; 1 = indice vague ou déduit ; 2 = réponse claire ; 3 
      un budget ou un délai, utilise "single" avec des fourchettes.
      Préfère des choix concrets et adaptés au contexte de la personne quand c'est possible ; "text" pour les questions
      qui demandent une histoire ou un exemple.
+   - Les moyens ("resources") se demandent en TROIS questions séparées, jamais mélangées, une par tour :
+     le budget de départ ("single", fourchettes dans sa monnaie), le temps par semaine ("single", fourchettes d'heures),
+     puis le matériel et les atouts déjà disponibles ("multi" : téléphone, ordinateur, moto, local, machine ou outils
+     de son métier, terrain…, plus « Rien de particulier pour l'instant »). Pose celle qui manque dans
+     "moyens_a_demander". Pour ces trois questions, "allowOther" vaut true : la personne peut écrire sa propre réponse.
    - "options" : 3 à 6 libellés courts (sans « Je ne sais pas », ajouté automatiquement).
    - "why" : une phrase qui explique pourquoi tu poses cette question.
 5. "done" : true seulement si toutes les dimensions indispensables ont une confiance ≥ 2.

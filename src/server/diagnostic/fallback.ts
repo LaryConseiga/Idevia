@@ -6,6 +6,7 @@ import {
   type Dimension,
   type ProfileState,
   type Slot,
+  missingResources,
   type SlotUpdates,
 } from "./profile";
 import { UNSURE, type Answer, type Option, type Question } from "./question";
@@ -177,6 +178,7 @@ const BANK: FallbackQuestion[] = [
     kind: "single",
     prompt: "Combien pourrais-tu investir pour démarrer, sans te mettre en difficulté ?",
     options: [], // calculé selon la devise du pays (voir `materialize`)
+    allowOther: true,
     apply: (a, state, q) => {
       const prev = slot(state, "resources");
       return {
@@ -198,12 +200,42 @@ const BANK: FallbackQuestion[] = [
     kind: "single",
     prompt: "Combien d'heures par semaine peux-tu y consacrer ?",
     options: opts(["Moins de 5 heures", "5 à 10 heures", "10 à 20 heures", "Plus de 20 heures"]),
+    allowOther: true,
     apply: (a, state) => {
       const prev = slot(state, "resources");
-      const hours = ({ f1: 4, f2: 8, f3: 15, f4: 30 } as Record<string, number>)[a.choices[0]] ?? null;
+      // Réponse libre (« le week-end seulement ») : on garde un nombre s'il y en a un, sinon une estimation prudente.
+      const typed = a.text ? Number(a.text.match(/\d+/)?.[0] ?? NaN) : NaN;
+      const hours =
+        ({ f1: 4, f2: 8, f3: 15, f4: 30 } as Record<string, number>)[a.choices[0]] ?? (Number.isFinite(typed) ? typed : a.text ? 6 : null);
       return {
         resources: {
           value: { budgetRange: prev?.budgetRange ?? null, hoursPerWeek: hours, assets: prev?.assets ?? [] },
+          confidence: Math.max(confidenceOf(state, "resources"), 2),
+          source: "user",
+        },
+      };
+    },
+  },
+  {
+    key: "resources-assets",
+    intent: "resources",
+    kind: "multi",
+    prompt: "Qu'as-tu déjà sous la main pour te lancer ?",
+    options: opts([
+      "Un smartphone",
+      "Un ordinateur",
+      "Une moto ou une voiture",
+      "Un local ou un espace chez moi",
+      "Une machine ou des outils de métier",
+      "Un terrain",
+      "Rien de particulier pour l'instant",
+    ]),
+    allowOther: true,
+    apply: (a, state, q) => {
+      const prev = slot(state, "resources");
+      return {
+        resources: {
+          value: { budgetRange: prev?.budgetRange ?? null, hoursPerWeek: prev?.hoursPerWeek ?? null, assets: withOther(q, a) },
           confidence: Math.max(confidenceOf(state, "resources"), 2),
           source: "user",
         },
@@ -359,12 +391,20 @@ export const pickDeepen = (askedKeys: string[]) => DEEPEN.find((q) => !askedKeys
  * Choisit la prochaine question de secours : dimension indispensable la moins renseignée d'abord,
  * jamais deux fois la même question, jamais sur une dimension déjà suffisamment connue.
  */
+const RESOURCE_KEYS = { budget: "resources-budget", time: "resources-time", assets: "resources-assets" } as const;
+
 export function pickFallback(state: ProfileState, askedKeys: string[]): FallbackQuestion | null {
   const below = (d: Dimension) => (REQUIRED.includes(d) ? 0 : 1);
-  const order = DIMENSIONS.filter((d) => confidenceOf(state, d) < 2).sort(
+  // Les moyens restent à compléter tant que budget, temps et matériel ne sont pas tous connus : une question à la fois.
+  const resourcesMissing = missingResources(state).filter((m) => !askedKeys.includes(RESOURCE_KEYS[m]));
+  const order = DIMENSIONS.filter((d) => confidenceOf(state, d) < 2 || (d === "resources" && resourcesMissing.length > 0)).sort(
     (a, b) => below(a) - below(b) || confidenceOf(state, a) - confidenceOf(state, b),
   );
   for (const d of order) {
+    if (d === "resources" && resourcesMissing.length) {
+      const key = RESOURCE_KEYS[resourcesMissing[0]];
+      return BANK.find((q) => q.key === key) ?? null;
+    }
     const next = BANK.find((q) => q.intent === d && !askedKeys.includes(q.key));
     if (next) return next;
   }

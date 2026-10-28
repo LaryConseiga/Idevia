@@ -4,6 +4,7 @@ import { createRouter, extractJson } from "@/server/ai/router";
 import { ProviderError, type Provider, type ProviderId } from "@/server/ai/types";
 import { scrubPersonalData } from "@/server/ai/scrub";
 import { buildPortrait, MAX_TURNS, MIN_TURNS, nextTurn, openingQuestion } from "@/server/diagnostic/engine";
+import { materialize, pickFallback } from "@/server/diagnostic/fallback";
 import { completeness, emptyProfile, requiredSatisfied } from "@/server/diagnostic/profile";
 import type { HistoryItem } from "@/server/diagnostic/prompts";
 import {
@@ -173,6 +174,7 @@ describe("minimum de questions", () => {
     for (const d of Object.keys(full.slots) as (keyof typeof full.slots)[]) {
       (full.slots as Record<string, unknown>)[d] = { value: {}, confidence: 3, source: "user" };
     }
+    full.slots.resources = { value: { budgetRange: "50 000 FCFA", hoursPerWeek: 10, assets: ["Un smartphone"] }, confidence: 3, source: "user" };
     const q = openingQuestion(full).question;
     const history = Array.from({ length: 5 }, (_, i) => ({ question: { ...q, id: `q${i}` }, answer: "réponse" }));
     const generate = vi.fn(async () => ({
@@ -182,6 +184,28 @@ describe("minimum de questions", () => {
     }));
     const result = await nextTurn({ state: full, history, lastAnswer: answer({ text: "réponse" }), generate: generate as never });
     expect(result.next?.question.id).toMatch(/^fb:deepen-/);
+  });
+});
+
+describe("moyens à disposition", () => {
+  it("demande budget, temps et matériel en trois questions séparées, avec une réponse libre possible", () => {
+    const state = emptyProfile();
+    for (const d of ["market", "goal", "skills", "interests", "motivations"] as const) {
+      (state.slots as Record<string, unknown>)[d] = { value: {}, confidence: 3, source: "user" };
+    }
+    const asked: string[] = [];
+    let current = state;
+    for (const expected of ["resources-budget", "resources-time", "resources-assets"]) {
+      const next = pickFallback(current, asked)!;
+      expect(next.key).toBe(expected);
+      expect(next.allowOther).toBe(true);
+      asked.push(next.key);
+      const question = materialize(next, next.key, current);
+      const update = next.apply({ choices: [question.options[0].value], scale: null, text: "" }, current, question);
+      current = { ...current, slots: { ...current.slots, ...update } as typeof current.slots };
+    }
+    expect(current.slots.resources?.value).toMatchObject({ hoursPerWeek: 4, assets: ["Un smartphone"] });
+    expect(current.slots.resources?.value.budgetRange).toBeTruthy();
   });
 });
 

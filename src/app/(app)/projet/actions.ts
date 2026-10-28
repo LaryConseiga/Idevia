@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/server/dal/session";
-import { requestFieldCheck, toggleTask, updateHypothesis, type ActionResult } from "@/server/projects/service";
+import { FEEDBACK_MAX, refineProjectIdea, requestFieldCheck, toggleTask, updateHypothesis, type ActionResult, type RefineResult } from "@/server/projects/service";
 
 /** Toujours l'utilisateur de la session ; aucun identifiant d'utilisateur ne vient du client. */
 
@@ -36,5 +36,17 @@ export async function fieldCheckAction(): Promise<ActionResult> {
   const user = await requireUser();
   const result = await requestFieldCheck(user.id);
   if (result.ok) refresh();
+  return result;
+}
+
+export async function refineIdeaAction(feedback: string): Promise<RefineResult> {
+  const parsed = z.string().max(FEEDBACK_MAX * 2).safeParse(feedback);
+  if (!parsed.success) return { ok: false, error: "Ton message est trop long." };
+  const user = await requireUser();
+  const result = await refineProjectIdea(user.id, parsed.data);
+  if (result.ok) {
+    refresh();
+    revalidatePath("/idees");
+  }
   return result;
 }

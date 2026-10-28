@@ -1,8 +1,8 @@
 import "server-only";
 import { and, asc, desc, eq, gte, ne, sql } from "drizzle-orm";
-import { decryptJson, encryptJson } from "@/server/crypto";
+import { decryptJson, encrypt, encryptJson } from "@/server/crypto";
 import type { Tx } from "@/server/db/client";
-import { businessIdeas, fieldChecks, projectMarketSignals, projects, tasks, validations } from "@/server/db/schema";
+import { businessIdeas, fieldChecks, projectMarketSignals, projects, tasks, usageCounters, validations } from "@/server/db/schema";
 import type { IdeaContent } from "@/server/ideas/schemas";
 import type { CollectedSignal, FieldCheckResult, FieldReport } from "@/server/market/field-check";
 import { tasksFromIdea } from "@/server/projects/tasks";
@@ -262,3 +262,70 @@ export function failFieldCheck(userId: string, checkId: string, errorCode: strin
   });
 }
 
+
+// ---------------------------------------------------------------- Repenser l'idée
+
+const REFINE_FEATURE = "idea_refine";
+const period = () => new Date().toISOString().slice(0, 7);
+
+export function refinementsThisMonth(userId: string): Promise<number> {
+  return withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({ used: usageCounters.used })
+      .from(usageCounters)
+      .where(and(eq(usageCounters.userId, userId), eq(usageCounters.period, period()), eq(usageCounters.feature, REFINE_FEATURE)));
+    return row?.used ?? 0;
+  });
+}
+
+/**
+ * Remplace la fiche de l'idée par sa version repensée : les étapes déjà faites sont gardées,
+ * les autres laissent la place au nouveau plan, qui repart d'aujourd'hui.
+ */
+export function applyRefinement(userId: string, projectId: string, ideaId: string, idea: IdeaContent, monthlyQuota: number, now = new Date()) {
+  return withUser(userId, async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`refine:${userId}`}))`);
+    const [counter] = await tx
+      .select({ used: usageCounters.used })
+      .from(usageCounters)
+      .where(and(eq(usageCounters.userId, userId), eq(usageCounters.period, period()), eq(usageCounters.feature, REFINE_FEATURE)));
+    if ((counter?.used ?? 0) >= monthlyQuota) return false;
+
+    const [current] = await tx
+      .select({ details: businessIdeas.details })
+      .from(businessIdeas)
+      .where(and(eq(businessIdeas.id, ideaId), eq(businessIdeas.userId, userId)));
+    if (!current) return false;
+    const details = (current.details ?? {}) as Record<string, unknown>;
+    await tx
+      .update(businessIdeas)
+      .set({
+        title: idea.title,
+        summary: idea.hook,
+        whyYouEnc: encrypt(idea.whyYou),
+        contentEnc: encryptJson(idea),
+        details: { ...details, numbers: idea.numbers, version: Number(details.version ?? 1) + 1 },
+      })
+      .where(eq(businessIdeas.id, ideaId));
+    await tx.update(projects).set({ name: idea.title }).where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
+
+    const done = await tx
+      .select({ sortOrder: tasks.sortOrder })
+      .from(tasks)
+      .where(and(eq(tasks.projectId, projectId), eq(tasks.status, "done")));
+    await tx.delete(tasks).where(and(eq(tasks.projectId, projectId), eq(tasks.userId, userId), ne(tasks.status, "done")));
+    const offset = done.reduce((max, t) => Math.max(max, t.sortOrder + 1), 0);
+    await tx.insert(tasks).values(
+      tasksFromIdea(idea, now).map((t) => ({ ...t, sortOrder: t.sortOrder + offset, projectId, userId })),
+    );
+
+    await tx
+      .insert(usageCounters)
+      .values({ userId, period: period(), feature: REFINE_FEATURE, used: 1 })
+      .onConflictDoUpdate({
+        target: [usageCounters.userId, usageCounters.period, usageCounters.feature],
+        set: { used: sql`${usageCounters.used} + 1` },
+      });
+    return true;
+  });
+}

@@ -29,6 +29,19 @@ export const REACH_LABELS: Record<Reach, string> = {
   cross_border: "Entre deux pays",
 };
 
+/** Nature de l'activité : les trois idées proposées doivent, autant que possible, être de natures différentes. */
+export const NATURES = ["service", "production", "agriculture", "food", "trade", "digital"] as const;
+export type Nature = (typeof NATURES)[number];
+
+export const NATURE_LABELS: Record<Nature, string> = {
+  service: "Service sur place",
+  production: "Fabrication",
+  agriculture: "Agriculture et élevage",
+  food: "Restauration",
+  trade: "Commerce",
+  digital: "Numérique",
+};
+
 export const candidateSchema = z.object({
   title: text(80, 3),
   pitch: text(300, 10),
@@ -40,6 +53,7 @@ export const candidateSchema = z.object({
   family: text(60),
   /** Où sont les clients : une idée n'est pas limitée au lieu de vie de la personne. */
   reach: z.enum(REACHES).catch("local"),
+  nature: z.enum(NATURES).catch("service"),
   whyFit: text(300),
 });
 

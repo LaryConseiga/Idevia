@@ -32,6 +32,11 @@ export default async function IdeaPage({ params }: PageProps<"/idees/[id]">) {
             <span className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
               n°{idea.rank} · {RANK_LABELS[idea.rank]}
             </span>
+            {idea.nature && (
+              <span className="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
+                {idea.nature}
+              </span>
+            )}
             {idea.reach && (
               <span className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
                 <Globe2 className="size-3.5" aria-hidden /> {idea.reach}

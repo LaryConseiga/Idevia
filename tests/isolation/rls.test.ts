@@ -39,6 +39,7 @@ const idea = (rank: number): GeneratedIdea => ({
     startCost: "10 000 FCFA",
     family: `famille-${rank}`,
     reach: "local",
+    nature: "production",
     whyFit: "Test",
   },
   content: {

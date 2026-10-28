@@ -46,4 +46,6 @@ export type ProjectView = {
   progress: { done: number; total: number };
   nextTaskId: string | null;
   field: FieldView;
+  /** Refontes de l'idée encore possibles ce mois-ci. */
+  refinesLeft: number;
 };

@@ -88,6 +88,9 @@ export function dedupe(candidates: Candidate[]): Candidate[] {
  * Garde les meilleures idées, une seule par famille de modèle économique tant que c'est possible.
  * Sans notation (juge indisponible), l'ordre des générateurs fait foi.
  */
+/** Écart de score (sur 100) accepté pour préférer une idée d'une autre nature. */
+const NATURE_TOLERANCE = 15;
+
 export function select(
   candidates: Candidate[],
   judgements: Judgement[] | null,
@@ -109,10 +112,17 @@ export function select(
     .filter((s) => !s.eliminated)
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || a.order - b.order);
 
+  // Variété d'abord : chaque nouvelle idée est d'une famille ET d'une nature différentes, tant qu'elle reste
+  // proche de la meilleure encore disponible ; sinon on accepte la même nature, jamais la même famille.
   const picked: typeof ranked = [];
-  for (const s of ranked) {
-    if (picked.length === keep) break;
-    if (!picked.some((p) => p.family === s.family)) picked.push(s);
+  while (picked.length < keep) {
+    const fresh = ranked.filter((s) => !picked.includes(s) && !picked.some((p) => p.family === s.family));
+    if (!fresh.length) break;
+    const best = fresh[0];
+    const varied = fresh.find(
+      (s) => !picked.some((p) => p.candidate.nature === s.candidate.nature) && (s.score ?? 0) >= (best.score ?? 0) - NATURE_TOLERANCE,
+    );
+    picked.push(varied ?? best);
   }
   // Pas assez de familles différentes : on complète avec les meilleures restantes.
   for (const s of ranked) {

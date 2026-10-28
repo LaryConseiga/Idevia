@@ -4,7 +4,13 @@ import { ai } from "@/server/ai";
 import { getLatestDiagnostic } from "@/server/dal/diagnostics";
 import { getIdea } from "@/server/dal/ideas";
 import { getPlan } from "@/server/dal/profile";
+import { getMemory, setMemory } from "@/server/dal/assistant";
+import { refineIdea } from "@/server/ideas/refine";
+import { profileBrief } from "@/server/ideas/prompts";
+import { mergeMemory } from "@/server/assistant/coach";
 import {
+  applyRefinement,
+  refinementsThisMonth,
   completeFieldCheck,
   countChecksThisMonth,
   failFieldCheck,
@@ -98,6 +104,7 @@ export async function getProjectView(userId: string): Promise<ProjectView | null
     progress: { done: tasks.filter((t) => t.done).length, total: tasks.length },
     nextTaskId: tasks.find((t) => !t.done)?.id ?? null,
     field: await fieldView(userId, project),
+    refinesLeft: await refinesLeft(userId),
   };
 }
 
@@ -157,4 +164,56 @@ export async function requestFieldCheck(userId: string): Promise<ActionResult> {
     }
   });
   return { ok: true };
+}
+
+// ---------------------------------------------------------------- Repenser l'idée
+
+export const FEEDBACK_MAX = 1200;
+
+export type RefineResult = { ok: true; changes: string } | { ok: false; error: string };
+
+export async function refinesLeft(userId: string) {
+  return Math.max(0, env.IDEA_REFINES_MONTHLY_QUOTA - (await refinementsThisMonth(userId)));
+}
+
+/** Réécrit l'idée choisie et son plan à partir du retour de la personne (30 à 60 secondes). */
+export async function refineProjectIdea(userId: string, feedback: string): Promise<RefineResult> {
+  const text = feedback.trim();
+  if (text.length < 10) return { ok: false, error: "Explique en quelques mots ce que tu veux changer ou approfondir." };
+  if (text.length > FEEDBACK_MAX) return { ok: false, error: `Ton message est trop long (${FEEDBACK_MAX} caractères au plus).` };
+  const verdict = await consume(`refine:${userId}`, limits.aiGeneration);
+  if (!verdict.allowed) return { ok: false, error: "Tu vas un peu vite. Réessaie dans quelques minutes." };
+
+  const [project, plan, diagnostic] = await Promise.all([
+    getActiveProject(userId),
+    getPlan(userId),
+    getLatestDiagnostic({ kind: "user", userId }),
+  ]);
+  if (isLockedFor(plan)) return { ok: false, error: "Le suivi de ton projet fait partie de l'offre Pro." };
+  if (!project?.ideaId || !diagnostic) return { ok: false, error: "Choisis d'abord ton idée." };
+  if ((await refinesLeft(userId)) === 0) {
+    return { ok: false, error: "Tu as repensé ton idée plusieurs fois ce mois-ci. Tu pourras recommencer le mois prochain." };
+  }
+  const [idea, memory] = await Promise.all([getIdea(userId, project.ideaId), getMemory(userId, project.id)]);
+  if (!idea?.content) return { ok: false, error: "Idée introuvable." };
+
+  const report = project.check.status === "ready" ? project.check.data.report : null;
+  const result = await refineIdea({
+    brief: profileBrief(diagnostic.state, diagnostic.portrait),
+    state: diagnostic.state,
+    idea: idea.content,
+    feedback: text,
+    done: project.tasks.filter((t) => t.status === "done").map((t) => t.title),
+    field: report ? `${report.headline} Angle conseillé : ${report.angle}` : null,
+    memory,
+    generate: ai.generate,
+    userId,
+  });
+  if (!result) return { ok: false, error: "Je n'ai pas réussi à repenser ton idée cette fois-ci. Réessaie dans un instant." };
+
+  const applied = await applyRefinement(userId, project.id, project.ideaId, result.idea, env.IDEA_REFINES_MONTHLY_QUOTA);
+  if (!applied) return { ok: false, error: "Tu as repensé ton idée plusieurs fois ce mois-ci. Tu pourras recommencer le mois prochain." };
+  // Le coach saura que l'idée a évolué, et pourquoi.
+  await setMemory(userId, project.id, mergeMemory(memory, [`Idée repensée : ${result.changes.slice(0, 180)}`]));
+  return { ok: true, changes: result.changes };
 }

@@ -69,8 +69,8 @@ export function generatorPrompt(input: { brief: string; state: ProfileState; ang
       ? `Angle : pars de ce que la personne sait DÉJÀ faire et de son réseau. Des idées qu'elle peut lancer dans le mois,
 avec ses moyens actuels, et vendre à des clients qu'elle peut nommer.`
       : `Angle : sois plus inventif. Croise ses compétences avec un besoin mal servi, près de chez elle ou ailleurs :
-vente en ligne, services à distance, contenu, formation, abonnement, B2B, pont entre deux pays, niche que peu de gens
-occupent. Reste réaliste avec son budget.`;
+transformation de produits locaux, services aux entreprises (B2B), abonnement, location de matériel, pont entre deux
+pays, niche que peu de gens occupent, et aussi le numérique quand il s'y prête. Reste réaliste avec son budget.`;
 
   const reach = localOnly(input.state)
     ? "La personne veut des clients près de chez elle : respecte ce choix."
@@ -94,12 +94,17 @@ Chaque idée doit :
 - viser des clients précis, et dire comment les atteindre ;
 - avoir un modèle de revenu clair, avec un prix réaliste dans la monnaie de ses clients.
 Pas deux idées de la même famille de modèle économique.
+Varie la NATURE des activités : un business n'est pas forcément du commerce en ligne. Couvre au moins quatre natures
+différentes parmi : "service" (service sur place : réparation, coiffure, ménage, livraison, événementiel…),
+"production" (fabrication, artisanat, transformation), "agriculture" (maraîchage, élevage, transformation agricole),
+"food" (restauration, traiteur, boissons), "trade" (boutique, revente, distribution, import) et "digital" (en ligne,
+formation, contenu, logiciel). Au plus deux idées "digital".
 "reach" : "local" (près de chez elle), "national", "online" (en ligne, n'importe où) ou "cross_border" (entre deux pays).
 
 Format :
 {"ideas":[{"title":"nom court et concret","pitch":"l'idée en une ou deux phrases","customer":"qui paie, précisément",
 "offer":"ce qui est vendu","revenueModel":"comment l'argent rentre","startCost":"coût de départ estimé avec la monnaie",
-"family":"famille de modèle (ex. : livraison de repas aux bureaux)","reach":"online","whyFit":"pourquoi c'est fait pour cette personne"}]}`;
+"family":"famille de modèle (ex. : livraison de repas aux bureaux)","reach":"online","nature":"food","whyFit":"pourquoi c'est fait pour cette personne"}]}`;
 
   return { system, user: `<profil>\n${input.brief}\n</profil>` };
 }

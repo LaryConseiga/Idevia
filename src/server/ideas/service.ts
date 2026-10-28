@@ -18,7 +18,7 @@ import { env } from "@/server/env";
 import { consume, limits } from "@/server/ratelimit";
 import { isLocked } from "./access";
 import { IdeasPipelineError, runIdeasPipeline } from "./pipeline";
-import { CRITERIA, REACH_LABELS, type Criterion } from "./schemas";
+import { CRITERIA, NATURE_LABELS, REACH_LABELS, type Criterion } from "./schemas";
 import type { IdeaCardView, IdeaDetailView, IdeasState } from "./view";
 
 /** Cas d'usage des idées. L'utilisateur est toujours celui de la session (vérifié par l'appelant). */
@@ -50,6 +50,7 @@ function toCard(idea: StoredIdea, locked: boolean): IdeaCardView {
     score: idea.score,
     numbers: idea.numbers,
     reach: idea.reach ? REACH_LABELS[idea.reach] : null,
+    nature: idea.nature ? NATURE_LABELS[idea.nature] : null,
     selected: idea.status === "selected",
   };
 }
@@ -95,6 +96,7 @@ export async function getIdeaDetail(userId: string, ideaId: string): Promise<Ide
       : null,
     content: idea.content,
     reach: idea.reach ? REACH_LABELS[idea.reach] : null,
+    nature: idea.nature ? NATURE_LABELS[idea.nature] : null,
     selected: idea.status === "selected",
   };
 }

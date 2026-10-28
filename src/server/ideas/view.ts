@@ -11,6 +11,7 @@ export type IdeaCardView =
       score: number | null;
       numbers: IdeaContent["numbers"] | null;
       reach: string | null;
+      nature: string | null;
       selected: boolean;
     }
   | { locked: true; id: string; rank: number; score: number | null };
@@ -22,6 +23,7 @@ export type IdeaDetailView = {
   breakdown: { key: Criterion; label: string; value: number }[] | null;
   content: IdeaContent;
   reach: string | null;
+  nature: string | null;
   selected: boolean;
 };
 

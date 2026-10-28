@@ -4,7 +4,7 @@ import { decrypt, encrypt, encryptJson, decryptJson } from "@/server/crypto";
 import type { Tx } from "@/server/db/client";
 import { businessIdeas, ideaBatches } from "@/server/db/schema";
 import type { GeneratedIdea, PipelineTrace } from "@/server/ideas/pipeline";
-import type { IdeaContent, Reach, ScoreBreakdown } from "@/server/ideas/schemas";
+import type { IdeaContent, Nature, Reach, ScoreBreakdown } from "@/server/ideas/schemas";
 import { withUser } from "./context";
 import { activateProjectForIdea } from "./projects";
 
@@ -23,6 +23,7 @@ export type StoredIdea = {
   status: (typeof businessIdeas.$inferSelect)["status"];
   numbers: IdeaContent["numbers"] | null;
   reach: Reach | null;
+  nature: Nature | null;
 };
 
 export type BatchState =
@@ -32,7 +33,7 @@ export type BatchState =
   | { status: "ready"; batchId: string; ideas: StoredIdea[] };
 
 function toIdea(row: typeof businessIdeas.$inferSelect): StoredIdea {
-  const details = row.details as { score: number | null; numbers?: IdeaContent["numbers"]; reach?: Reach };
+  const details = row.details as { score: number | null; numbers?: IdeaContent["numbers"]; reach?: Reach; nature?: Nature };
   return {
     id: row.id,
     rank: row.rank,
@@ -45,6 +46,7 @@ function toIdea(row: typeof businessIdeas.$inferSelect): StoredIdea {
     status: row.status,
     numbers: details.numbers ?? null,
     reach: details.reach ?? null,
+    nature: details.nature ?? null,
   };
 }
 
@@ -151,7 +153,7 @@ export function completeBatch(userId: string, batchId: string, diagnosticId: str
         title: idea.content.title,
         summary: idea.content.hook,
         // Données non personnelles, utiles aux listes et aux statistiques.
-        details: { score: idea.score, numbers: idea.content.numbers, family: idea.candidate.family, reach: idea.candidate.reach },
+        details: { score: idea.score, numbers: idea.content.numbers, family: idea.candidate.family, reach: idea.candidate.reach, nature: idea.candidate.nature },
         compatibilityScore: idea.score ?? 0,
         scoreBreakdown: idea.breakdown ?? {},
         whyYouEnc: encrypt(idea.content.whyYou),

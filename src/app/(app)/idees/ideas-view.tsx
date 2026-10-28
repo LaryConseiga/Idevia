@@ -226,6 +226,11 @@ function IdeaCard({ idea, featured = false }: { idea: IdeaCardView; featured?: b
           >
             n°{idea.rank} · {RANK_LABELS[idea.rank]}
           </span>
+          {idea.nature && (
+            <span className="ml-2 inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
+              {idea.nature}
+            </span>
+          )}
           {idea.reach && (
             <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
               <Globe2 className="size-3.5" aria-hidden /> {idea.reach}

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type { ProjectView as Project, TaskView } from "@/server/projects/view";
 import { toggleTaskAction } from "./actions";
 import { FieldSection } from "./field-section";
+import { RefineIdea } from "./refine-idea";
 
 const dueFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" });
 export const formatDue = (date: string) => dueFormat.format(new Date(`${date}T00:00:00Z`));
@@ -110,6 +111,8 @@ export function ProjectView({ project }: { project: Project }) {
       </section>
 
       <FieldSection field={project.field} locked={project.locked} />
+
+      {canTrack && <RefineIdea left={project.refinesLeft} />}
     </div>
   );
 }

@@ -66,6 +66,6 @@ Trois modes, dans cet ordre de priorité :
 4. **Domaine** : ajouter le sous-domaine dans Vercel, puis chez name.com un seul enregistrement
    `CNAME <sous-domaine> → cname.vercel-dns.com` (ne pas toucher au domaine principal ni à ses autres enregistrements).
 5. **Resend** : ajouter le sous-domaine comme domaine d'envoi et créer les enregistrements DNS demandés (SPF, DKIM).
-6. **Neon Realtime** : ajouter `https://<sous-domaine>` à `allowedOrigins` dans `neon.ts`, puis `neon deploy`.
+6. **Neon Realtime** : ajouter `https://<sous-domaine>` (fait : `idevia.betech.live`) à `allowedOrigins` dans `neon.ts`, puis `neon deploy`.
 7. **Vérifier** : `BASE_URL=https://<sous-domaine> npm run test:e2e`, puis une inscription complète depuis un téléphone.
 

@@ -4,7 +4,7 @@ export default defineConfig({
   // Declare your Neon services here
   preview: {
     // Origines autorisées à ouvrir une connexion Realtime (ajouter le domaine de production au lancement).
-    realtime: { allowedOrigins: ["http://localhost:3000", "https://idevia.vercel.app"] },
+    realtime: { allowedOrigins: ["http://localhost:3000", "https://idevia.vercel.app", "https://idevia.betech.live"] },
   },
   auth: false,
   // Branch policy: per-branch tuning

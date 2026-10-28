@@ -101,30 +101,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Pourquoi */}
-      <section id="pourquoi" className="px-4 py-20 sm:px-6">
-        <div className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-[0.8fr_1.2fr]">
-          <div className="flex flex-wrap justify-center gap-2">
-            {["FCFA", "€", "CHF", "$ CA", "Dakar", "Abidjan", "Paris", "Bruxelles", "Montréal", "Douala", "Genève", "en ligne"].map((chip) => (
-              <span key={chip} className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium">
-                {chip}
-              </span>
-            ))}
-          </div>
-          <div>
-            <h2 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Fait pour ta réalité.</h2>
-            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-              Ton budget dans ta monnaie, les démarches de ton pays, les canaux qui marchent chez tes clients : WhatsApp et
-              Mobile Money à Abidjan, Instagram à Paris, la diaspora entre les deux.
-            </p>
-            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              Et ta ville ne limite pas tes idées : tes clients peuvent être au coin de la rue, dans tout ton pays ou de
-              l&apos;autre côté de la mer.
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* Comment ça marche */}
       <section id="comment-ca-marche" className="px-4 py-20 sm:px-6">
         <h2 className="mx-auto max-w-5xl text-center text-4xl font-semibold tracking-[-0.04em] sm:text-6xl">

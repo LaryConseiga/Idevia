@@ -203,7 +203,7 @@ export default function HomePage() {
       {/* Contact et fin */}
       <section id="contact" className="px-4 pt-16 pb-20 text-center sm:px-6">
         <p className="font-display text-4xl leading-tight font-semibold tracking-[-0.05em] sm:text-7xl">
-          Pensé pour les francophones.
+          Pensé pour les futurs entrepreneurs.
           <br />
           <span className="text-muted-foreground">Construit pour ton premier client.</span>
         </p>

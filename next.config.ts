@@ -38,6 +38,8 @@ const nextConfig: NextConfig = {
       { source: "/fonctionnalites", destination: "/#idees", permanent: true },
       { source: "/faq", destination: "/#faq", permanent: true },
       { source: "/contact", destination: "/#contact", permanent: true },
+      // Le plan d'action est désormais le tableau de bord (anciens liens, emails déjà envoyés).
+      { source: "/projet", destination: "/tableau-de-bord", permanent: false },
     ];
   },
   async headers() {

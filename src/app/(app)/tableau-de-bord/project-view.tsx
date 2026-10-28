@@ -18,7 +18,7 @@ export const formatDue = (date: string) => dueFormat.format(new Date(`${date}T00
 const askCoachHref = (task: TaskView) =>
   `/assistant?question=${encodeURIComponent(`Je bloque sur l'étape « ${task.title} ». Par quoi je commence ?`)}`;
 
-export function ProjectView({ project }: { project: Project }) {
+export function ProjectView({ project, greeting }: { project: Project; greeting?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [, start] = useTransition();
   // Cocher une tâche doit répondre tout de suite, même sur une connexion lente.
@@ -46,7 +46,8 @@ export function ProjectView({ project }: { project: Project }) {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-10">
       <header className="flex flex-col gap-4">
-        <p className="text-sm font-semibold tracking-wide text-primary uppercase">Ton projet</p>
+        {greeting && <p className="text-lg font-medium text-muted-foreground">{greeting}</p>}
+        <p className="text-sm font-semibold tracking-wide text-primary uppercase">Ton plan d&apos;action</p>
         <h1 className="text-3xl leading-tight font-bold text-balance sm:text-4xl">{project.name}</h1>
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-4 text-sm">
@@ -72,7 +73,7 @@ export function ProjectView({ project }: { project: Project }) {
         </div>
         {project.ideaId && (
           <Link
-            href={`/idees/${project.ideaId}`}
+            href="/mon-idee"
             className="inline-flex min-h-10 items-center gap-1.5 self-start text-sm font-medium text-primary hover:underline"
           >
             Revoir la fiche de l&apos;idée <ArrowRight className="size-4" aria-hidden />

@@ -12,6 +12,7 @@ export default function robots(): MetadataRoute.Robots {
         "/tableau-de-bord",
         "/idees",
         "/projet",
+        "/mon-idee",
         "/assistant",
         "/compte",
         "/diagnostic",

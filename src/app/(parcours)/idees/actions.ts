@@ -22,7 +22,7 @@ export async function chooseIdeaAction(ideaId: string): Promise<RequestResult> {
   const result = await chooseIdea(user.id, parsed.data);
   if (result.ok) {
     revalidatePath("/idees");
-    revalidatePath("/projet");
+    revalidatePath("/mon-idee");
     revalidatePath("/tableau-de-bord");
   }
   return result;

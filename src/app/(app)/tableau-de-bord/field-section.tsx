@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { HypothesisStatus } from "@/server/dal/projects";
 import type { Level } from "@/server/market/field-check";
 import type { FieldView, HypothesisView, SourceView } from "@/server/projects/view";
-import { joinWaitlistAction } from "../idees/actions";
+import { joinWaitlistAction } from "@/app/(parcours)/idees/actions";
 import { fieldCheckAction, hypothesisAction } from "./actions";
 
 export function FieldSection({ field, locked }: { field: FieldView; locked: boolean }) {

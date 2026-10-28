@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
           task: r.task,
           due: formatDue(r.dueDate),
           overdue: r.overdue,
-          projectUrl: `${env.APP_URL}/projet`,
+          projectUrl: `${env.APP_URL}/tableau-de-bord`,
           unsubscribeUrl: unsubscribe,
         }),
         // Désabonnement en un clic depuis la boîte mail (RFC 8058).

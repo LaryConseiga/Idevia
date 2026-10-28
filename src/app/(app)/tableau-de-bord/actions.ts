@@ -8,8 +8,8 @@ import { FEEDBACK_MAX, refineProjectIdea, requestFieldCheck, toggleTask, updateH
 /** Toujours l'utilisateur de la session ; aucun identifiant d'utilisateur ne vient du client. */
 
 function refresh() {
-  revalidatePath("/projet");
   revalidatePath("/tableau-de-bord");
+  revalidatePath("/mon-idee");
 }
 
 export async function toggleTaskAction(taskId: string, done: boolean): Promise<ActionResult> {

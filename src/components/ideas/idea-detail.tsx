@@ -1,30 +1,15 @@
-import { ArrowLeft, CheckCircle2, Clock, Flag, Globe2, Lock, ShieldAlert, Sparkles, Target, Wallet } from "lucide-react";
-import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { CheckCircle2, Clock, Flag, Globe2, ShieldAlert, Sparkles, Target, Wallet } from "lucide-react";
+import type { ReactNode } from "react";
 import { RANK_LABELS, ScoreRing } from "@/components/ideas/score-ring";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { requireUser } from "@/server/dal/session";
-import { getIdeaDetail } from "@/server/ideas/service";
-import { ChooseIdea } from "./choose-idea";
+import type { IdeaDetailView } from "@/server/ideas/view";
 
-export const metadata: Metadata = { title: "Ton idée" };
-
-export default async function IdeaPage({ params }: PageProps<"/idees/[id]">) {
-  const { id } = await params;
-  const user = await requireUser(`/idees/${id}`);
-  if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const idea = await getIdeaDetail(user.id, id);
-  if (!idea) notFound();
-  if (idea === "locked") return <Locked />;
-
+/** Fiche complète d'une idée : sert au choix (/idees/[id]) et à « Mon idée » une fois l'idée validée. */
+export function IdeaDetail({ idea, back, footer }: { idea: IdeaDetailView; back?: ReactNode; footer?: ReactNode }) {
   const { content } = idea;
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-8 pb-24 md:pb-0">
-      <Link href="/idees" className="inline-flex min-h-10 items-center gap-1.5 self-start text-sm font-medium text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden /> Mes idées
-      </Link>
+      {back}
 
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
@@ -157,23 +142,7 @@ export default async function IdeaPage({ params }: PageProps<"/idees/[id]">) {
         </section>
       )}
 
-      <ChooseIdea ideaId={idea.id} selected={idea.selected} />
+      {footer}
     </article>
-  );
-}
-
-function Locked() {
-  return (
-    <Card className="mx-auto flex max-w-xl flex-col items-start gap-4 p-6 sm:p-8">
-      <Lock className="size-8 text-highlight" aria-hidden />
-      <h1 className="text-2xl font-bold">Cette idée fait partie de l&apos;offre Pro</h1>
-      <p className="leading-relaxed text-muted-foreground">
-        Tes deux meilleures idées, leur plan détaillé et le suivi arrivent avec l&apos;offre Pro. Tu peux déjà
-        explorer ta troisième idée en entier.
-      </p>
-      <Button asChild variant="secondary">
-        <Link href="/idees">Revenir à mes idées</Link>
-      </Button>
-    </Card>
   );
 }

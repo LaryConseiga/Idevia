@@ -1,14 +1,13 @@
 "use client";
 
-import { House, Lightbulb, MessageCircle, Rocket, UserRound } from "lucide-react";
+import { Lightbulb, ListChecks, MessageCircle, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const items = [
-  { href: "/tableau-de-bord", label: "Accueil", icon: House },
-  { href: "/idees", label: "Mes idées", icon: Lightbulb },
-  { href: "/projet", label: "Mon projet", icon: Rocket },
+  { href: "/tableau-de-bord", label: "Mon plan", icon: ListChecks },
+  { href: "/mon-idee", label: "Mon idée", icon: Lightbulb },
   { href: "/assistant", label: "Coach", icon: MessageCircle },
   { href: "/compte", label: "Compte", icon: UserRound },
 ];
@@ -43,7 +42,7 @@ export function AppNav({ variant }: { variant: "sidebar" | "bottom" }) {
       aria-label="Navigation de l'application"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-4">
         {items.map((item) => (
           <li key={item.href}>
             <Link

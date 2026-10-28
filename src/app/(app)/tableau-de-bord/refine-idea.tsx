@@ -37,7 +37,7 @@ export function RefineIdea({ left }: { left: number }) {
     });
 
   return (
-    <section aria-labelledby="repenser" className="flex flex-col gap-4">
+    <section id="repenser" aria-labelledby="repenser-titre" className="flex flex-col gap-4">
       {changes && (
         <Alert tone="success" className="flex items-start gap-2">
           <Sparkles className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
@@ -48,7 +48,7 @@ export function RefineIdea({ left }: { left: number }) {
       )}
       <Card className="flex flex-col gap-4 p-6 sm:p-8">
         <div>
-          <h2 id="repenser" className="flex items-center gap-2 font-sans text-xl font-semibold tracking-normal">
+          <h2 id="repenser-titre" className="flex items-center gap-2 font-sans text-xl font-semibold tracking-normal">
             <RefreshCw className="size-5 text-primary" aria-hidden /> Repenser mon idée
           </h2>
           <p className="mt-1 leading-relaxed text-muted-foreground">

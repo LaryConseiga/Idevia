@@ -1,15 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Inter } from "next/font/google";
+import { Figtree, Inter } from "next/font/google";
 import { Pwa } from "@/components/pwa";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin"],
-  variable: "--font-bricolage",
-  display: "swap",
-  weight: ["600", "700", "800"],
-});
+const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree", display: "swap", weight: ["500", "600", "700"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
@@ -27,17 +22,15 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FFFBF5" },
-    { media: "(prefers-color-scheme: dark)", color: "#12110F" },
-  ],
+  themeColor: "#12110F",
+  colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${inter.variable} ${bricolage.variable} antialiased`}>
+    <html lang="fr" className={`${inter.variable} ${figtree.variable} antialiased`}>
       <body className="flex min-h-dvh flex-col">
         <a
           href="#contenu"

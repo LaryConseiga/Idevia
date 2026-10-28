@@ -6,10 +6,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.APP_URL ?? "http://localhost:3000";
   const pages = [
     "",
-    "/comment-ca-marche",
     "/tarifs",
-    "/faq",
-    "/contact",
     "/blog",
     "/legal/conditions",
     "/legal/confidentialite",

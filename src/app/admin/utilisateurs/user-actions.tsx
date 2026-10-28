@@ -55,7 +55,7 @@ export function UserActions(props: { userId: string; banned: boolean; role: stri
           className={
             props.banned
               ? "min-h-10 cursor-pointer rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground"
-              : "min-h-10 cursor-pointer rounded-lg bg-destructive px-3 text-sm font-semibold text-white"
+              : "min-h-10 cursor-pointer rounded-lg bg-destructive px-3 text-sm font-semibold text-destructive-foreground"
           }
         >
           {props.banned ? "Réactiver le compte" : "Suspendre le compte"}

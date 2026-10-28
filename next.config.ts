@@ -31,6 +31,15 @@ const nextConfig: NextConfig = {
     // `instant` sont validés pour la navigation instantanée.
     instantInsights: { validationLevel: "manual-warning" },
   },
+  // Anciennes pages devenues des sections de l'accueil.
+  async redirects() {
+    return [
+      { source: "/comment-ca-marche", destination: "/#comment-ca-marche", permanent: true },
+      { source: "/fonctionnalites", destination: "/#idees", permanent: true },
+      { source: "/faq", destination: "/#faq", permanent: true },
+      { source: "/contact", destination: "/#contact", permanent: true },
+    ];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

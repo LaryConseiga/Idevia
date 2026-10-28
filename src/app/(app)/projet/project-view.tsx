@@ -166,7 +166,7 @@ function TaskRow(props: { task: TaskView; canTrack: boolean; isNext: boolean; on
           <span
             className={cn(
               "flex size-7 items-center justify-center rounded-full border-2 transition-colors",
-              task.done ? "border-success bg-success text-white" : "border-border hover:border-primary",
+              task.done ? "border-success bg-success text-success-foreground" : "border-border hover:border-primary",
             )}
           >
             {task.done && <Check className="size-4" aria-hidden />}

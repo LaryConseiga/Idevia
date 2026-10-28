@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const PRIVATE_PAGES = ["/tableau-de-bord", "/idees", "/projet", "/assistant", "/compte", "/compte/donnees", "/compte/suppression", "/admin", "/admin/utilisateurs"];
-const PUBLIC_PAGES = ["/", "/comment-ca-marche", "/tarifs", "/faq", "/contact", "/blog", "/legal/conditions", "/legal/confidentialite", "/legal/mentions-legales"];
+const PUBLIC_PAGES = ["/", "/tarifs", "/blog", "/legal/conditions", "/legal/confidentialite", "/legal/mentions-legales"];
 
 test.describe("espace privé", () => {
   for (const path of PRIVATE_PAGES) {
@@ -82,13 +82,14 @@ test.describe("site public", () => {
     const robots = await (await request.get("/robots.txt")).text();
     for (const path of ["/projet", "/assistant", "/compte", "/api/"]) expect(robots).toContain(`Disallow: ${path}`);
     const sitemap = await (await request.get("/sitemap.xml")).text();
-    expect(sitemap).toContain("/faq");
+    expect(sitemap).toContain("/tarifs");
     expect(sitemap).not.toContain("/tableau-de-bord");
     const og = await request.get("/opengraph-image");
     expect(og.headers()["content-type"]).toContain("image/png");
-    await page.goto("/faq");
-    const jsonLd = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent()) ?? "{}");
-    expect(jsonLd["@type"]).toBe("FAQPage");
-    expect(jsonLd.mainEntity.length).toBeGreaterThan(5);
+    await page.goto("/");
+    const jsonLd = JSON.parse((await page.locator('script[type="application/ld+json"]').first().textContent()) ?? "{}");
+    const faq = jsonLd["@graph"].find((n: { "@type": string }) => n["@type"] === "FAQPage");
+    expect(faq.mainEntity.length).toBeGreaterThan(5);
+    for (const id of ["comment-ca-marche", "idees", "faq", "contact"]) await expect(page.locator(`#${id}`)).toHaveCount(1);
   });
 });

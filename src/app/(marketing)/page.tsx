@@ -1,70 +1,45 @@
 import {
-  ArrowRight,
-  Check,
+  ArrowUpRight,
+  Bell,
   Compass,
+  Hammer,
+  Laptop,
+  Lightbulb,
   ListChecks,
-  Lock,
+  Mail,
   MapPin,
+  Megaphone,
   MessageCircle,
-  Quote,
-  Smartphone,
+  Search,
+  ShoppingBasket,
   Sprout,
-  Target,
+  Store,
+  UtensilsCrossed,
+  Wrench,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { FAQS, FaqList } from "@/components/marketing/faq";
+import { HeroDemo } from "@/components/marketing/hero-demo";
 import { JsonLd } from "@/components/marketing/json-ld";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { SITE } from "@/lib/site";
 
-export const metadata: Metadata = {
-  alternates: { canonical: "/" },
-};
-
-const steps = [
-  {
-    icon: MessageCircle,
-    title: "Un échange, pas un formulaire",
-    text: "Idevia te pose une question à la fois et choisit la suivante selon ce que tu viens de répondre. Comme un mentor qui t'écoute vraiment.",
-  },
-  {
-    icon: Compass,
-    title: "Des idées faites pour toi",
-    text: "Trois idées adaptées à tes compétences, ton budget et ton temps, près de chez toi, en ligne ou entre deux pays, avec pour chacune la raison pour laquelle elle te correspond.",
-  },
-  {
-    icon: ListChecks,
-    title: "Un plan pour avancer",
-    text: "Un plan de 30 jours découpé en actions concrètes : parler à des clients, tester un prix, réaliser une première vente.",
-  },
-];
-
-const promises = [
-  {
-    icon: MapPin,
-    title: "Ancré dans ta réalité, ouvert sur le monde",
-    text: "Budgets dans ta monnaie (FCFA, euro, franc suisse, dollar canadien…), démarches de ton pays, et des canaux qui marchent là où sont tes clients : au coin de la rue, en ligne ou dans la diaspora.",
-  },
-  {
-    icon: Target,
-    title: "Honnête sur l'incertain",
-    text: "Chaque chiffre est marqué : donnée sourcée et datée, estimation ou hypothèse à vérifier. Aucune promesse de revenus.",
-  },
-  {
-    icon: Sprout,
-    title: "Il avance avec toi",
-    text: "Ton plan s'adapte à ce que tu apprends sur le terrain. L'assistant connaît ton projet et t'aide sur la prochaine étape.",
-  },
-  {
-    icon: Smartphone,
-    title: "Pensé pour ton téléphone",
-    text: "Léger, rapide même avec une connexion faible, et installable sur ton téléphone ou ton ordinateur comme une application.",
-  },
-];
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 const base = process.env.APP_URL ?? "http://localhost:3000";
 
+const NATURES = [
+  { icon: Wrench, label: "Service sur place", text: "Réparation, coiffure, ménage, livraison…", tone: "border-sky/50" },
+  { icon: Hammer, label: "Fabrication", text: "Couture, savons, meubles, artisanat…", tone: "border-accent/50" },
+  { icon: Sprout, label: "Agriculture et élevage", text: "Maraîchage, volaille, transformation…", tone: "border-success/50" },
+  { icon: UtensilsCrossed, label: "Restauration", text: "Plats du midi, traiteur, jus, pâtisserie…", tone: "border-highlight/50" },
+  { icon: ShoppingBasket, label: "Commerce", text: "Boutique, revente, import, distribution…", tone: "border-destructive/50" },
+  { icon: Laptop, label: "Numérique", text: "Formation, graphisme, vente en ligne…", tone: "border-violet/50" },
+];
+
+/** Page d'accueil unique : chaque entrée du menu fait défiler jusqu'à sa section (#ancre). */
 export default function HomePage() {
   return (
     <>
@@ -80,251 +55,218 @@ export default function HomePage() {
               operatingSystem: "Web, Android, iOS",
               inLanguage: "fr",
               url: base,
-              description:
-                "Trouve une idée de business adaptée à ton profil, vérifie-la sur le terrain et avance avec un plan de 30 jours et un coach.",
               offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+            },
+            {
+              "@type": "FAQPage",
+              mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
             },
           ],
         }}
       />
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 -top-40 -z-10 mx-auto h-[36rem] max-w-5xl rounded-full bg-[radial-gradient(closest-side,var(--primary-soft),transparent)] opacity-90"
-        />
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-12 pb-16 sm:px-6 md:pt-20 lg:grid-cols-[1.1fr_0.9fr] lg:pb-24">
-          <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-soft px-3 py-1 text-sm font-medium text-primary">
-              <Sprout className="size-4" aria-hidden />
-              Pour les entrepreneurs francophones, d&apos;Afrique, d&apos;Europe et d&apos;ailleurs
-            </p>
-            <h1 className="mt-5 text-4xl font-extrabold sm:text-5xl lg:text-6xl">
-              Trouve <span className="text-primary">ton</span> idée de business. Puis passe à l&apos;action.
-            </h1>
-            <p className="mt-5 max-w-xl text-lg text-muted-foreground">
-              Idevia apprend à te connaître, te propose des idées qui collent à ta vie réelle — tes compétences, ton
-              budget, ton temps — sans t&apos;enfermer dans ta ville, et t&apos;accompagne avec un plan concret, étape par étape.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Button asChild variant="cta" size="lg">
-                <Link href="/diagnostic">
-                  Commencer mon diagnostic
-                  <ArrowRight aria-hidden />
-                </Link>
-              </Button>
-              <Button asChild variant="secondary" size="lg">
-                <Link href="/comment-ca-marche">Voir comment ça marche</Link>
-              </Button>
-            </div>
-            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-              {["Gratuit", "10 minutes environ", "Sans compte pour commencer"].map((item) => (
-                <li key={item} className="inline-flex items-center gap-1.5">
-                  <Check className="size-4 text-success" aria-hidden />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
 
-          <ConversationPreview />
+      {/* Accroche */}
+      <section className="relative overflow-hidden px-4 pt-16 pb-20 text-center sm:px-6 sm:pt-24">
+        <h1 className="mx-auto max-w-4xl text-5xl leading-[1.02] font-semibold tracking-[-0.05em] sm:text-7xl lg:text-[5.5rem]">
+          Trouve{" "}
+          <Tile tone="bg-accent text-accent-foreground">
+            <Lightbulb className="size-[0.55em]" aria-hidden />
+          </Tile>{" "}
+          ton idée
+          <br />
+          et lance-toi{" "}
+          <Tile tone="bg-primary text-primary-foreground">
+            <Sprout className="size-[0.55em]" aria-hidden />
+          </Tile>
+          <br />
+          <span className="text-muted-foreground">pour de vrai.</span>
+        </h1>
+        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+          Idevia apprend à te connaître, te propose 3 idées de business variées faites pour toi, les vérifie sur le terrain et
+          t&apos;accompagne jusqu&apos;à ton premier client.
+        </p>
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link
+            href="/diagnostic"
+            className="inline-flex min-h-12 items-center gap-1.5 rounded-full bg-foreground px-6 font-semibold text-background transition-opacity hover:opacity-90"
+          >
+            Trouver mon idée <ArrowUpRight className="size-5" aria-hidden />
+          </Link>
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm text-muted-foreground">
+            <span className="size-2 rounded-full bg-success" aria-hidden /> Gratuit · sans carte bancaire · 10 minutes
+          </span>
+        </div>
+        <div className="mt-14">
+          <HeroDemo />
+        </div>
+      </section>
+
+      {/* Pourquoi */}
+      <section id="pourquoi" className="px-4 py-20 sm:px-6">
+        <div className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-[0.8fr_1.2fr]">
+          <div className="flex flex-wrap justify-center gap-2">
+            {["FCFA", "€", "CHF", "$ CA", "Dakar", "Abidjan", "Paris", "Bruxelles", "Montréal", "Douala", "Genève", "en ligne"].map((chip) => (
+              <span key={chip} className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium">
+                {chip}
+              </span>
+            ))}
+          </div>
+          <div>
+            <h2 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Fait pour ta réalité.</h2>
+            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
+              Ton budget dans ta monnaie, les démarches de ton pays, les canaux qui marchent chez tes clients : WhatsApp et
+              Mobile Money à Abidjan, Instagram à Paris, la diaspora entre les deux.
+            </p>
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+              Et ta ville ne limite pas tes idées : tes clients peuvent être au coin de la rue, dans tout ton pays ou de
+              l&apos;autre côté de la mer.
+            </p>
+          </div>
         </div>
       </section>
 
       {/* Comment ça marche */}
-      <section aria-labelledby="etapes" className="border-y border-border bg-card">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
-          <h2 id="etapes" className="max-w-2xl text-3xl font-bold sm:text-4xl">
-            De « je ne sais pas quoi lancer » à ta première action, en trois temps
-          </h2>
-          <ol className="mt-10 grid gap-6 md:grid-cols-3">
-            {steps.map((step, i) => (
-              <li key={step.title} className="relative rounded-card border border-border bg-background p-6">
-                <span className="font-display text-sm font-bold text-accent">Étape {i + 1}</span>
-                <step.icon className="mt-4 size-8 text-primary" aria-hidden />
-                <h3 className="mt-4 text-xl font-bold">{step.title}</h3>
-                <p className="mt-2 text-muted-foreground">{step.text}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+      <section id="comment-ca-marche" className="px-4 py-20 sm:px-6">
+        <h2 className="mx-auto max-w-5xl text-center text-4xl font-semibold tracking-[-0.04em] sm:text-6xl">
+          Une idée qui change ta vie.
+          <br />
+          <span className="text-muted-foreground">Comment la trouver ?</span>
+        </h2>
 
-      {/* Exemple de résultat */}
-      <section aria-labelledby="exemple" className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
-        <div className="grid items-center gap-12 lg:grid-cols-2">
+        <Step n={1} title="Fais connaissance" subtitle="Un échange, pas un formulaire">
+          Une question à la fois, choisie selon ta réponse : ce que tu sais faire, ce qui t&apos;attire, ton budget, ton temps.
+          À la fin, Idevia te dit ce qu&apos;il a compris de toi, et tu corriges si besoin.
+        </Step>
+
+        <div id="idees" className="scroll-mt-24">
+          <Step n={2} title="Reçois 3 idées variées" subtitle="Pas seulement du commerce en ligne">
+            Plusieurs modèles d&apos;IA imaginent une douzaine d&apos;idées, un autre les note sur six critères, et les trois
+            meilleures, de natures différentes, sont rédigées avec leur plan de 30 jours.
+          </Step>
+          <div className="mx-auto mt-8 grid max-w-5xl grid-cols-2 gap-3 md:grid-cols-3">
+            {NATURES.map((n) => (
+              <div key={n.label} className={cn("flex flex-col items-center gap-2 rounded-2xl border bg-card px-4 py-7 text-center", n.tone)}>
+                <n.icon className="size-8" aria-hidden />
+                <p className="font-semibold">{n.label}</p>
+                <p className="text-sm text-muted-foreground">{n.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <Step n={3} title="Vérifie-la sur le terrain" subtitle="De vraies données, avant de dépenser">
+          Idevia regarde qui vend déjà près de toi, ce que les gens cherchent et qui fait de la publicité. Chaque constat est
+          sourcé et daté.
+        </Step>
+        <Cards
+          items={[
+            { icon: Store, label: "Concurrents proches", tone: "border-success/50" },
+            { icon: Search, label: "Ce que les gens cherchent", tone: "border-sky/50" },
+            { icon: Megaphone, label: "Publicités en cours", tone: "border-highlight/50" },
+          ]}
+        />
+        <div className="mx-auto mt-6 grid max-w-4xl gap-6 border-t border-border pt-6 text-left md:grid-cols-2">
           <div>
-            <h2 id="exemple" className="text-3xl font-bold sm:text-4xl">
-              Une idée qui t&apos;explique pourquoi elle est pour toi
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Chaque idée détaille le client visé, le budget de départ, les risques et les premières actions pour la
-              tester. Le score de compatibilité se décompose critère par critère : ce n&apos;est jamais une
-              probabilité de réussite.
+            <p className="text-xs font-semibold text-muted-foreground uppercase">Avant</p>
+            <p className="mt-2 text-lg">« Je veux vendre des vêtements. »</p>
+          </div>
+          <div className="md:border-l md:border-border md:pl-6">
+            <p className="text-xs font-semibold text-primary uppercase">Après</p>
+            <p className="mt-2 text-lg">
+              Kits mère-enfant en wax pour les baptêmes à Abidjan, 30 000 FCFA avec 50 % d&apos;acompte, vendus sur WhatsApp, là
+              où aucun concurrent ne fait de publicité.
             </p>
-            <Button asChild variant="link" className="mt-4 px-0">
-              <Link href="/comment-ca-marche">
-                Le parcours en détail <ArrowRight aria-hidden />
-              </Link>
-            </Button>
           </div>
-          <IdeaPreview />
         </div>
-      </section>
 
-      {/* Promesses */}
-      <section aria-labelledby="promesses" className="bg-muted/60">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
-          <h2 id="promesses" className="max-w-2xl text-3xl font-bold sm:text-4xl">
-            Conçu pour la réalité du terrain
-          </h2>
-          <div className="mt-10 grid gap-5 sm:grid-cols-2">
-            {promises.map((item) => (
-              <Card key={item.title} className="flex gap-4 p-6">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-                  <item.icon className="size-6" aria-hidden />
-                </span>
-                <div>
-                  <h3 className="font-sans text-lg font-semibold tracking-normal">{item.title}</h3>
-                  <p className="mt-1 text-muted-foreground">{item.text}</p>
-                </div>
-              </Card>
-            ))}
-          </div>
-          <p className="mt-8 inline-flex items-start gap-2 text-sm text-muted-foreground">
-            <Lock className="mt-0.5 size-4 shrink-0" aria-hidden />
-            Tes réponses sont chiffrées, jamais revendues, et tu peux tout exporter ou supprimer quand tu veux.
-          </p>
-        </div>
+        <Step n={4} title="Avance avec ton coach" subtitle="Ton idée évolue avec toi">
+          Ton plan devient une liste d&apos;actions datées. Le coach connaît ton projet, t&apos;aide quand tu bloques, et ton idée
+          peut être repensée selon ce que tu découvres.
+        </Step>
+        <Cards
+          items={[
+            { icon: ListChecks, label: "Plan de 30 jours", tone: "border-primary/50" },
+            { icon: MessageCircle, label: "Coach qui se souvient", tone: "border-violet/50" },
+            { icon: Bell, label: "Rappels au bon moment", tone: "border-accent/50" },
+          ]}
+        />
       </section>
 
       {/* FAQ */}
-      <section aria-labelledby="faq" className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:py-24">
-        <h2 id="faq" className="text-3xl font-bold sm:text-4xl">
-          Questions fréquentes
-        </h2>
-        <div className="mt-8">
-          <FaqList items={FAQS.slice(0, 5)} />
+      <section id="faq" className="px-4 py-20 sm:px-6">
+        <h2 className="text-center text-4xl font-semibold tracking-[-0.04em] sm:text-6xl">Des questions ? Des réponses.</h2>
+        <div className="mx-auto mt-10 max-w-2xl">
+          <FaqList items={FAQS} />
         </div>
-        <Link href="/faq" className="mt-5 inline-flex min-h-10 items-center gap-1.5 font-medium text-primary hover:underline">
-          Toutes les questions <ArrowRight className="size-4" aria-hidden />
-        </Link>
       </section>
 
-      {/* CTA final */}
-      <section className="px-4 pb-20 sm:px-6">
-        <div className="mx-auto max-w-6xl overflow-hidden rounded-[1.5rem] bg-primary px-6 py-14 text-center text-primary-foreground sm:px-12">
-          <h2 className="mx-auto max-w-2xl text-3xl font-bold sm:text-4xl">
-            Ta prochaine décision utile commence par une question
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-primary-foreground/85">
-            Réponds à ton rythme. Tu pourras créer ton compte à la fin pour sauvegarder ton profil et tes idées.
-          </p>
-          <Button asChild variant="cta" size="lg" className="mt-8">
-            <Link href="/diagnostic">
-              Trouver mon idée <ArrowRight aria-hidden />
-            </Link>
-          </Button>
+      {/* Contact et fin */}
+      <section id="contact" className="px-4 pt-16 pb-20 text-center sm:px-6">
+        <p className="font-display text-4xl leading-tight font-semibold tracking-[-0.05em] sm:text-7xl">
+          Pensé pour les francophones.
+          <br />
+          <span className="text-muted-foreground">Construit pour ton premier client.</span>
+        </p>
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link
+            href="/diagnostic"
+            className="inline-flex min-h-12 items-center gap-1.5 rounded-full bg-foreground px-6 font-semibold text-background hover:opacity-90"
+          >
+            Commencer <ArrowUpRight className="size-5" aria-hidden />
+          </Link>
+          {SITE.contactEmail && (
+            <a
+              href={`mailto:${SITE.contactEmail}`}
+              className="inline-flex min-h-12 items-center gap-2 rounded-full border border-border px-6 font-medium hover:bg-card"
+            >
+              <Mail className="size-4" aria-hidden /> {SITE.contactEmail}
+            </a>
+          )}
         </div>
+        <p className="mt-6 inline-flex flex-wrap items-center justify-center gap-1.5 text-sm text-muted-foreground">
+          <Compass className="size-4" aria-hidden /> Afrique, Europe, Canada, océan Indien
+          <MapPin className="ml-2 size-4" aria-hidden /> ou en ligne
+        </p>
       </section>
     </>
   );
 }
 
-/** Aperçu statique de l'entretien adaptatif (illustration, pas de données réelles). */
-function ConversationPreview() {
+function Tile({ tone, children }: { tone: string; children: ReactNode }) {
   return (
-    <Card className="relative mx-auto w-full max-w-md p-5 sm:p-6" aria-label="Exemple d'échange avec Idevia">
-      <div className="flex items-center justify-between text-sm">
-        <span className="font-semibold">Ton diagnostic</span>
-        <span className="text-muted-foreground">Question 4</span>
-      </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
-        <div className="h-full w-2/5 rounded-full bg-primary" />
-      </div>
-
-      <div className="mt-6 space-y-4 text-[15px]">
-        <p className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-primary-soft px-4 py-3">
-          Je fais de la pâtisserie pour la famille et les voisins commandent souvent.
-        </p>
-        <div className="max-w-[92%] rounded-2xl rounded-bl-md border border-border bg-background px-4 py-3">
-          <p>
-            Tes voisins commandent déjà : c&apos;est un vrai signal. Quand ils te commandent, c&apos;est plutôt pour…
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Je te demande ça pour savoir quel type de client paie déjà pour ton savoir-faire.
-          </p>
-        </div>
-        <div className="grid gap-2" aria-hidden>
-          {["Des fêtes et événements", "Le goûter de tous les jours", "Des cadeaux", "Je ne sais pas encore"].map(
-            (option, i) => (
-              <span
-                key={option}
-                className={
-                  i === 0
-                    ? "rounded-xl border-2 border-primary bg-primary-soft px-4 py-2.5 font-medium"
-                    : "rounded-xl border border-border px-4 py-2.5 text-muted-foreground"
-                }
-              >
-                {option}
-              </span>
-            ),
-          )}
-        </div>
-      </div>
-      <p className="mt-4 text-center text-xs text-muted-foreground">Exemple illustratif</p>
-    </Card>
+    <span
+      aria-hidden
+      className={cn(
+        "inline-flex size-[0.9em] -translate-y-[0.08em] rotate-[-6deg] items-center justify-center rounded-[0.22em] align-middle shadow-card",
+        tone,
+      )}
+    >
+      {children}
+    </span>
   );
 }
 
-/** Aperçu statique d'une fiche idée (exemple fictif, clairement signalé). */
-function IdeaPreview() {
-  const criteria = [
-    { label: "Compétences", value: 90 },
-    { label: "Budget", value: 75 },
-    { label: "Temps disponible", value: 70 },
-    { label: "Marché local", value: 65 },
-  ];
+function Step({ n, title, subtitle, children }: { n: number; title: string; subtitle: string; children: ReactNode }) {
   return (
-    <Card className="p-6" aria-label="Exemple de fiche idée">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold tracking-wide text-accent uppercase">Exemple fictif · Ouagadougou</p>
-          <h3 className="mt-1 text-2xl font-bold">Gâteaux d&apos;événements sur commande WhatsApp</h3>
+    <div className="mx-auto mt-20 max-w-3xl text-center">
+      <h3 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+        {n}. {title}
+      </h3>
+      <p className="mt-3 font-display text-xl font-semibold tracking-tight sm:text-2xl">{subtitle}</p>
+      <p className="mt-3 leading-relaxed text-muted-foreground">{children}</p>
+    </div>
+  );
+}
+
+function Cards({ items }: { items: { icon: typeof Store; label: string; tone: string }[] }) {
+  return (
+    <div className="mx-auto mt-8 grid max-w-5xl gap-3 md:grid-cols-3">
+      {items.map((c) => (
+        <div key={c.label} className={cn("flex items-center justify-center gap-3 rounded-2xl border bg-card px-4 py-8", c.tone)}>
+          <c.icon className="size-7" aria-hidden />
+          <span className="font-semibold">{c.label}</span>
         </div>
-        <span className="flex size-14 shrink-0 flex-col items-center justify-center rounded-2xl bg-primary-soft text-primary">
-          <span className="font-display text-xl leading-none font-bold">76</span>
-          <span className="text-[10px] font-medium">/ 100</span>
-        </span>
-      </div>
-
-      <dl className="mt-5 space-y-2.5">
-        {criteria.map((c) => (
-          <div key={c.label} className="grid grid-cols-[8.5rem_1fr_2.5rem] items-center gap-3 text-sm">
-            <dt className="text-muted-foreground">{c.label}</dt>
-            <dd className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
-              <div className="h-full rounded-full bg-primary" style={{ width: `${c.value}%` }} />
-            </dd>
-            <dd className="text-right font-medium tabular-nums">{c.value}</dd>
-          </div>
-        ))}
-      </dl>
-
-      <div className="mt-5 rounded-xl bg-highlight-soft p-4">
-        <p className="flex items-center gap-2 text-sm font-semibold">
-          <Quote className="size-4 text-highlight" aria-hidden /> Pourquoi toi
-        </p>
-        <p className="mt-1 text-sm">
-          Tu as dit que tes voisins commandent déjà et que tu peux y consacrer tes week-ends : tu peux tester avec de
-          vrais clients dès cette semaine, sans louer de local.
-        </p>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2 text-xs">
-        <span className="rounded-full bg-primary-soft px-2.5 py-1 font-medium text-primary">Donnée sourcée</span>
-        <span className="rounded-full bg-highlight-soft px-2.5 py-1 font-medium">Estimation</span>
-        <span className="rounded-full bg-muted px-2.5 py-1 font-medium text-muted-foreground">Hypothèse à vérifier</span>
-      </div>
-    </Card>
+      ))}
+    </div>
   );
 }

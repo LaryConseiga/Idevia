@@ -34,7 +34,7 @@ export function RemindersToggle({ enabled }: { enabled: boolean }) {
           on ? "bg-primary" : "bg-muted-foreground/40",
         )}
       >
-        <span className={cn("inline-block size-6 rounded-full bg-white shadow transition-transform motion-reduce:transition-none", on ? "translate-x-7" : "translate-x-1")} />
+        <span className={cn("inline-block size-6 rounded-full bg-foreground shadow transition-transform motion-reduce:transition-none", on ? "translate-x-7" : "translate-x-1")} />
       </button>
     </div>
   );

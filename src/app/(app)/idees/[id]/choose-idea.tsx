@@ -22,8 +22,8 @@ export function ChooseIdea({ ideaId, selected }: { ideaId: string; selected: boo
         const result = await chooseIdeaAction(ideaId);
         if (result.ok) {
           setChosen(true);
-          // Le plan devient la liste d'actions du projet : on y emmène la personne directement.
-          router.push("/projet");
+          // Le plan devient la liste d'actions du projet : on retrouve tout sur le tableau de bord.
+          router.push("/tableau-de-bord");
         } else setError(result.error);
       } catch {
         setError("Connexion perdue. Réessaie dans un instant.");
@@ -43,8 +43,8 @@ export function ChooseIdea({ ideaId, selected }: { ideaId: string; selected: boo
         </p>
         {chosen ? (
           <Button asChild variant="cta">
-            <Link href="/projet">
-              <Check aria-hidden /> Idée choisie, voir mon plan d&apos;action <ArrowRight aria-hidden />
+            <Link href="/tableau-de-bord">
+              <Check aria-hidden /> Idée choisie, aller à mon tableau de bord <ArrowRight aria-hidden />
             </Link>
           </Button>
         ) : (

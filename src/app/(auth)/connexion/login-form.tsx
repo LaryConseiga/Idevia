@@ -48,6 +48,11 @@ export function LoginForm({ next }: { next: string | undefined }) {
       setError(authErrorMessage(error));
       return;
     }
+    // Rattachement du diagnostic (route serveur, pas une page) : navigation complète.
+    if (destination.startsWith("/diagnostic/rattacher")) {
+      window.location.assign(destination);
+      return;
+    }
     router.replace(destination);
     router.refresh();
   }

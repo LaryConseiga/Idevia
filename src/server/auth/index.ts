@@ -35,7 +35,10 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    // Pas de confirmation bloquante : on entre tout de suite après l'inscription (le diagnostic débouche
+    // directement sur les idées). L'email de confirmation part quand même ; il conditionne les rappels.
+    requireEmailVerification: false,
+    autoSignIn: true,
     minPasswordLength: 10,
     maxPasswordLength: 128,
     resetPasswordTokenExpiresIn: 60 * 60,
@@ -47,7 +50,7 @@ export const auth = betterAuth({
 
   emailVerification: {
     sendOnSignUp: true,
-    sendOnSignIn: true,
+    sendOnSignIn: false,
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60 * 24,
     sendVerificationEmail: async ({ user, url }) => {

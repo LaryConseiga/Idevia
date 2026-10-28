@@ -398,17 +398,17 @@ function NextSteps({ anonymous, onRestart }: { anonymous: boolean; onRestart: ()
       <Card className="flex flex-col gap-4 border-primary/30 p-6 sm:p-8">
         <h2 className="text-2xl font-bold">Garde ton portrait et découvre tes idées</h2>
         <p className="leading-relaxed text-muted-foreground">
-          Crée ton compte gratuit : ton portrait y sera rattaché et je pourrai te proposer des idées de business
-          pensées pour toi, avec leur raison d&apos;être. Sans compte, il est effacé au bout de 7 jours.
+          Crée ton compte gratuit : tu arriveras directement sur tes 3 idées de business, pensées pour toi, avec leur
+          plan d&apos;action. Sans compte, ton portrait est effacé au bout de 7 jours.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button asChild variant="cta">
-            <Link href="/inscription?suivant=/diagnostic">
-              Créer mon compte gratuit <ArrowRight aria-hidden />
+            <Link href="/inscription?suivant=/diagnostic/rattacher">
+              Créer mon compte et voir mes idées <ArrowRight aria-hidden />
             </Link>
           </Button>
           <Button asChild variant="secondary">
-            <Link href="/connexion?suivant=/diagnostic">J&apos;ai déjà un compte</Link>
+            <Link href="/connexion?suivant=/diagnostic/rattacher">J&apos;ai déjà un compte</Link>
           </Button>
         </div>
       </Card>

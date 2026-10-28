@@ -27,17 +27,23 @@ export function SignupForm({ next }: { next: string | undefined }) {
     setPasswordError(undefined);
     setPending(true);
     setError(null);
-    const { error } = await authClient.signUp.email({
+    const { data, error } = await authClient.signUp.email({
       name: String(form.get("name") ?? "").trim(),
       email,
       password,
       callbackURL: safeNextPath(next),
     });
-    setPending(false);
     if (error) {
+      setPending(false);
       setError(authErrorMessage(error));
       return;
     }
+    // Compte ouvert et connecté tout de suite : navigation complète pour que le cookie de session s'applique.
+    if (data?.token) {
+      window.location.assign(safeNextPath(next));
+      return;
+    }
+    setPending(false);
     setSentTo(email);
   }
 

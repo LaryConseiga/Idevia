@@ -22,6 +22,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { FAQS, FaqList } from "@/components/marketing/faq";
 import { HeroDemo } from "@/components/marketing/hero-demo";
+import { HomeBackground } from "@/components/marketing/home-background";
 import { JsonLd } from "@/components/marketing/json-ld";
 import { cn } from "@/lib/utils";
 import { SITE } from "@/lib/site";
@@ -66,7 +67,8 @@ export default function HomePage() {
       />
 
       {/* Accroche */}
-      <section className="relative overflow-hidden px-4 pt-16 pb-20 text-center sm:px-6 sm:pt-24">
+      <section className="relative isolate overflow-hidden px-4 pt-16 pb-20 text-center sm:px-6 sm:pt-24">
+        <HomeBackground />
         <h1 className="mx-auto max-w-4xl text-5xl leading-[1.02] font-semibold tracking-[-0.05em] sm:text-7xl lg:text-[5.5rem]">
           Trouve{" "}
           <Tile tone="bg-accent text-accent-foreground">

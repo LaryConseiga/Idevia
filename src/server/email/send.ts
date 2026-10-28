@@ -46,6 +46,6 @@ export async function sendEmail(mail: Mail) {
     console.info(`\n[email:dev] → ${mail.to}\nSujet : ${mail.subject}\n${mail.text}\n`);
     return;
   }
-  const { error } = await resend.emails.send({ from, ...mail });
+  const { error } = await resend.emails.send({ from, ...(env.CONTACT_EMAIL && { replyTo: env.CONTACT_EMAIL }), ...mail });
   if (error) throw new Error(`Envoi d'email échoué (${error.name})`);
 }

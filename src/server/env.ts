@@ -28,6 +28,8 @@ const schema = z.object({
   RESEND_API_KEY: z.string().optional(),
   /** Expéditeur. Par défaut : l'adresse SMTP en local, sinon l'adresse de test de Resend. */
   EMAIL_FROM: z.string().optional(),
+  /** Boîte qui reçoit les réponses aux emails (l'expéditeur ne sert qu'à envoyer). */
+  CONTACT_EMAIL: z.email().optional(),
 
   /**
    * Tests en local uniquement : envoi par un compte mail ordinaire (Gmail : smtp.gmail.com, port 465,

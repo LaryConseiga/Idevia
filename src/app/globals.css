@@ -211,3 +211,61 @@
   padding: 0.1rem 0.35rem;
   font-size: 0.9em;
 }
+
+/* Accueil, section « Les idées » : les exemples défilent un par un (CSS seulement, figé si moins d'animations). */
+.idea-ticker {
+  /* Un peu plus haut que la ligne : les jambages de l'italique ne débordent pas sur l'exemple suivant. */
+  --line: 1.4em;
+  height: var(--line);
+  overflow: hidden;
+}
+@media (max-width: 639px) {
+  /* Sur téléphone, un exemple peut tenir sur deux lignes. */
+  .idea-ticker {
+    --line: 2.6em;
+  }
+}
+.idea-ticker-track {
+  display: block;
+  animation: idea-ticker 13.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+.idea-ticker-item {
+  display: flex;
+  align-items: flex-start;
+  height: var(--line);
+  line-height: 1.2;
+}
+@keyframes idea-ticker {
+  0.00%,
+  13.33% {
+    transform: translateY(calc(var(--line) * -0));
+  }
+  16.67%,
+  30.00% {
+    transform: translateY(calc(var(--line) * -1));
+  }
+  33.33%,
+  46.67% {
+    transform: translateY(calc(var(--line) * -2));
+  }
+  50.00%,
+  63.33% {
+    transform: translateY(calc(var(--line) * -3));
+  }
+  66.67%,
+  80.00% {
+    transform: translateY(calc(var(--line) * -4));
+  }
+  83.33%,
+  96.67% {
+    transform: translateY(calc(var(--line) * -5));
+  }
+  100% {
+    transform: translateY(calc(var(--line) * -6));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .idea-ticker-track {
+    animation: none;
+  }
+}

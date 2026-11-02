@@ -13,13 +13,14 @@ export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 const base = process.env.APP_URL ?? "http://localhost:3000";
 
-const KINDS: { photo: Photo; kind: string }[] = [
-  { photo: PHOTOS.venteEnLigne, kind: "Vente en ligne" },
-  { photo: PHOTOS.coiffure, kind: "Service" },
-  { photo: PHOTOS.hydroponie, kind: "Agriculture" },
-  { photo: PHOTOS.formation, kind: "Formation" },
-  { photo: PHOTOS.foodTruck, kind: "Restauration" },
-  { photo: PHOTOS.maroquinerie, kind: "Fabrication" },
+/** Idées qui défilent dans la section « Les idées » : des natures et des lieux variés, lus en quelques secondes. */
+const SAMPLE_IDEAS = [
+  "un food truck à Lyon ?",
+  "une boutique en ligne depuis Dakar ?",
+  "une ferme urbaine à Casablanca ?",
+  "un salon de coiffure à Montréal ?",
+  "des cours en ligne pour la diaspora ?",
+  "un service pour les PME d'Abidjan ?",
 ];
 
 const STEPS = [
@@ -105,24 +106,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Les idées : de toutes natures */}
+      {/* Les idées : de toutes natures, en une phrase animée */}
       <section id="idees" className="border-t border-border">
-        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <div className="grid gap-6 lg:grid-cols-[1fr_1fr] lg:items-end">
-            <h2 className="text-4xl leading-tight font-medium tracking-tight sm:text-5xl">Des idées de toutes natures.</h2>
-            <p className="max-w-lg leading-relaxed text-muted-foreground">
-              Une boutique en ligne, un food truck, une ferme moderne, un salon, une formation ou un atelier, à Paris, à
-              Casablanca, à Abidjan, à Montréal ou depuis chez toi : tes trois idées sont de natures différentes, et toutes
-              partent de ce que tu sais déjà faire.
-            </p>
-          </div>
-          <ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-3 lg:gap-x-6">
-            {KINDS.map(({ photo, kind }, i) => (
-              <li key={kind} className={cn(i % 3 === 1 && "lg:mt-12")}>
-                <Figure photo={photo} sizes="(min-width: 1024px) 33vw, 50vw" className="aspect-[4/5]" label={kind} />
-              </li>
-            ))}
-          </ul>
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+          <p className="text-sm text-muted-foreground">Des idées de toutes natures</p>
+          <h2 className="mt-4 font-display text-3xl leading-tight font-medium tracking-tight sm:text-5xl lg:text-6xl">
+            Et si tu lançais
+            <span className="sr-only"> {SAMPLE_IDEAS.join(" Ou ")}</span>
+            <span aria-hidden className="idea-ticker mt-1 block text-accent italic">
+              <span className="idea-ticker-track">
+                {[...SAMPLE_IDEAS, SAMPLE_IDEAS[0]].map((idea, i) => (
+                  <span key={i} className="idea-ticker-item">
+                    {idea}
+                  </span>
+                ))}
+              </span>
+            </span>
+          </h2>
+          <p className="mt-8 max-w-xl text-lg leading-relaxed text-muted-foreground">
+            Vente en ligne, service, agriculture, restauration, formation ou fabrication : tes trois idées sont toujours de
+            natures différentes, et toutes partent de ce que tu sais déjà faire.
+          </p>
         </div>
       </section>
 
@@ -225,14 +229,12 @@ function Figure({
   photo,
   sizes,
   className,
-  label,
   priority,
   hideCaption,
 }: {
   photo: Photo;
   sizes: string;
   className?: string;
-  label?: string;
   priority?: boolean;
   hideCaption?: boolean;
 }) {
@@ -252,7 +254,6 @@ function Figure({
       </div>
       {!hideCaption && (
         <figcaption className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          {label && <span className="block text-sm font-medium text-foreground">{label}</span>}
           {photo.caption}. Photo {photo.author}, {photo.license.name}.
         </figcaption>
       )}

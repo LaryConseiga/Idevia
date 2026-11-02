@@ -30,6 +30,8 @@ import type { ActionResult, DiagnosticView } from "./view";
 
 export const ANON_COOKIE = isProd ? "__Host-idevia-diag" : "idevia-diag";
 const ANON_MAX_AGE = 7 * 24 * 60 * 60;
+// Le préfixe __Host- impose Secure et Path=/ : la suppression doit les reprendre, sinon le navigateur l'ignore.
+const ANON_COOKIE_OPTIONS = { httpOnly: true, secure: isProd, sameSite: "lax", path: "/" } as const;
 const MAX_CORRECTIONS = 3;
 
 type Viewer = { owner: Owner; userId: string | null } | null;
@@ -47,13 +49,7 @@ async function currentViewer({ createAnonymous }: { createAnonymous: boolean }):
   if (!token || token.length < 40) {
     if (!createAnonymous) return null;
     token = randomBytes(32).toString("base64url");
-    jar.set(ANON_COOKIE, token, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: "lax",
-      path: "/",
-      maxAge: ANON_MAX_AGE,
-    });
+    jar.set(ANON_COOKIE, token, { ...ANON_COOKIE_OPTIONS, maxAge: ANON_MAX_AGE });
   }
   return { owner: { kind: "anon", sessionHash: sha256(token) }, userId: null };
 }
@@ -75,7 +71,7 @@ export async function claimFromCookie(userId: string): Promise<void> {
   const jar = await cookies();
   const token = jar.get(ANON_COOKIE)?.value;
   if (token) await claimAnonymousDiagnostics(userId, sha256(token));
-  jar.delete(ANON_COOKIE);
+  jar.delete({ name: ANON_COOKIE, ...ANON_COOKIE_OPTIONS });
 }
 
 function toView(stored: StoredDiagnostic, owner: Owner): DiagnosticView {

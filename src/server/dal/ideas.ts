@@ -2,9 +2,10 @@ import "server-only";
 import { and, asc, desc, eq, gte, ne, sql } from "drizzle-orm";
 import { decrypt, encrypt, encryptJson, decryptJson } from "@/server/crypto";
 import type { Tx } from "@/server/db/client";
-import { businessIdeas, ideaBatches } from "@/server/db/schema";
-import type { GeneratedIdea, PipelineTrace } from "@/server/ideas/pipeline";
+import { businessIdeas, ideaBatches, ideaReactions } from "@/server/db/schema";
+import type { GeneratedIdea, PipelineTrace, ReserveIdea } from "@/server/ideas/pipeline";
 import type { IdeaContent, Nature, Reach, ScoreBreakdown } from "@/server/ideas/schemas";
+import type { IdeaReactionReason, ReactionView } from "@/lib/idea-reactions";
 import { withUser } from "./context";
 import { activateProjectForIdea } from "./projects";
 
@@ -30,7 +31,10 @@ export type BatchState =
   | { status: "none" }
   | { status: "running"; batchId: string; startedAt: Date }
   | { status: "failed"; batchId: string; errorCode: string | null }
-  | { status: "ready"; batchId: string; ideas: StoredIdea[] };
+  | { status: "ready"; batchId: string; ideas: StoredIdea[]; reactions: StoredReactions };
+
+/** Réactions d'un lot : par identifiant d'idée, et `batch` pour la réaction à tout le lot. */
+export type StoredReactions = { byIdea: Record<string, ReactionView>; batch: ReactionView | null };
 
 function toIdea(row: typeof businessIdeas.$inferSelect): StoredIdea {
   const details = row.details as { score: number | null; numbers?: IdeaContent["numbers"]; reach?: Reach; nature?: Nature };
@@ -67,12 +71,17 @@ export function getLatestBatch(userId: string): Promise<BatchState> {
         : { status: "running", batchId: batch.id, startedAt: batch.createdAt };
     }
     if (batch.status === "failed") return { status: "failed", batchId: batch.id, errorCode: batch.errorCode };
-    const rows = await tx
-      .select()
-      .from(businessIdeas)
-      .where(eq(businessIdeas.batchId, batch.id))
-      .orderBy(asc(businessIdeas.rank));
-    return { status: "ready", batchId: batch.id, ideas: rows.map(toIdea) };
+    const [rows, reactions] = await Promise.all([
+      tx.select().from(businessIdeas).where(eq(businessIdeas.batchId, batch.id)).orderBy(asc(businessIdeas.rank)),
+      tx.select().from(ideaReactions).where(eq(ideaReactions.batchId, batch.id)),
+    ]);
+    const stored: StoredReactions = { byIdea: {}, batch: null };
+    for (const r of reactions) {
+      const view = { reason: r.reason, comment: r.commentEnc ? decrypt(r.commentEnc) : null };
+      if (r.ideaId) stored.byIdea[r.ideaId] = view;
+      else stored.batch = view;
+    }
+    return { status: "ready", batchId: batch.id, ideas: rows.map(toIdea), reactions: stored };
   });
 }
 
@@ -142,7 +151,14 @@ export function startBatch(userId: string, diagnosticId: string, monthlyQuota: n
   });
 }
 
-export function completeBatch(userId: string, batchId: string, diagnosticId: string, ideas: GeneratedIdea[], trace: PipelineTrace) {
+export function completeBatch(
+  userId: string,
+  batchId: string,
+  diagnosticId: string,
+  ideas: GeneratedIdea[],
+  reserve: ReserveIdea[],
+  trace: PipelineTrace,
+) {
   return withUser(userId, async (tx) => {
     await tx.insert(businessIdeas).values(
       ideas.map((idea) => ({
@@ -162,7 +178,7 @@ export function completeBatch(userId: string, batchId: string, diagnosticId: str
     );
     await tx
       .update(ideaBatches)
-      .set({ status: "ready", completedAt: sql`now()`, pipeline: trace })
+      .set({ status: "ready", completedAt: sql`now()`, pipeline: trace, reserveEnc: reserve.length ? encryptJson(reserve) : null })
       .where(and(eq(ideaBatches.id, batchId), eq(ideaBatches.userId, userId)));
   });
 }
@@ -173,6 +189,52 @@ export function failBatch(userId: string, batchId: string, errorCode: string) {
       .update(ideaBatches)
       .set({ status: "failed", errorCode, completedAt: sql`now()` })
       .where(and(eq(ideaBatches.id, batchId), eq(ideaBatches.userId, userId)));
+  });
+}
+
+export function getReaction(userId: string, ideaId: string): Promise<ReactionView | null> {
+  return withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({ reason: ideaReactions.reason, commentEnc: ideaReactions.commentEnc })
+      .from(ideaReactions)
+      .where(and(eq(ideaReactions.ideaId, ideaId), eq(ideaReactions.userId, userId)));
+    return row ? { reason: row.reason, comment: row.commentEnc ? decrypt(row.commentEnc) : null } : null;
+  });
+}
+
+/**
+ * Enregistre (ou remplace) la réaction à une idée, ou à tout le dernier lot prêt si `ideaId` est nul.
+ * Renvoie false si l'idée ou le lot n'appartient pas à la personne.
+ */
+export function saveReaction(
+  userId: string,
+  input: { ideaId: string | null; reason: IdeaReactionReason; comment: string | null },
+): Promise<boolean> {
+  return withUser(userId, async (tx) => {
+    let batchId: string | null;
+    if (input.ideaId) {
+      const [idea] = await tx
+        .select({ batchId: businessIdeas.batchId })
+        .from(businessIdeas)
+        .where(and(eq(businessIdeas.id, input.ideaId), eq(businessIdeas.userId, userId)));
+      batchId = idea?.batchId ?? null;
+    } else {
+      const [batch] = await tx
+        .select({ id: ideaBatches.id })
+        .from(ideaBatches)
+        .where(and(eq(ideaBatches.userId, userId), eq(ideaBatches.status, "ready")))
+        .orderBy(desc(ideaBatches.createdAt))
+        .limit(1);
+      batchId = batch?.id ?? null;
+    }
+    if (!batchId) return false;
+
+    const values = { reason: input.reason, commentEnc: input.comment ? encrypt(input.comment) : null };
+    await tx
+      .insert(ideaReactions)
+      .values({ userId, batchId, ideaId: input.ideaId, ...values })
+      .onConflictDoUpdate({ target: [ideaReactions.batchId, ideaReactions.ideaId], set: { ...values, updatedAt: sql`now()` } });
+    return true;
   });
 }
 

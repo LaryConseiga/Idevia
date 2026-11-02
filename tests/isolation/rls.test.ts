@@ -5,7 +5,7 @@ import { exportUserData, purgeDueDeletions, requestDeletion } from "@/server/dal
 import { appendExchange, getMemory, listMessages, setMemory } from "@/server/dal/assistant";
 import { withSystem, withUser } from "@/server/dal/context";
 import { completeDiagnostic, createDiagnostic, updatePortrait } from "@/server/dal/diagnostics";
-import { completeBatch, getIdea, getLatestBatch, selectIdea, startBatch } from "@/server/dal/ideas";
+import { completeBatch, getIdea, getLatestBatch, getReaction, saveReaction, selectIdea, startBatch } from "@/server/dal/ideas";
 import { getActiveProject, setTaskDone } from "@/server/dal/projects";
 import { db } from "@/server/db/client";
 import { businessIdeas, deletionRequests, profiles, projects, tasks } from "@/server/db/schema";
@@ -73,12 +73,14 @@ beforeAll(async () => {
   await completeDiagnostic(owner, diagnosticId, state);
   const started = await startBatch(A, diagnosticId, 10);
   if (started.kind !== "started") throw new Error(started.kind);
-  await completeBatch(A, started.batchId, diagnosticId, [idea(1), idea(2), idea(3)], {
+  const reserve = [{ candidate: { ...idea(4).candidate, whyFit: "Réserve secrète de A" }, score: 70, breakdown: null, judgement: null }];
+  await completeBatch(A, started.batchId, diagnosticId, [idea(1), idea(2), idea(3)], reserve, {
     generators: [], judge: null, writers: [], candidates: 3, eliminated: 0, durationMs: 0,
   });
   const batch = await getLatestBatch(A);
   if (batch.status !== "ready") throw new Error("lot");
   ideaId = batch.ideas[0].id;
+  await saveReaction(A, { ideaId, reason: "budget", comment: "Commentaire privé de A" });
   await selectIdea(A, ideaId);
   const project = await getActiveProject(A);
   projectId = project!.id;
@@ -97,6 +99,13 @@ describe("isolation entre comptes", () => {
     expect((await getIdea(A, ideaId))?.whyYou).toContain("Secret de A");
     expect((await getActiveProject(A))?.tasks.length).toBe(4);
     expect(await listMessages(A, projectId)).toHaveLength(2);
+    expect(await getReaction(A, ideaId)).toEqual({ reason: "budget", comment: "Commentaire privé de A" });
+  });
+
+  it("B ne lit ni ne remplace la réaction de A", async () => {
+    expect(await getReaction(B, ideaId)).toBeNull();
+    expect(await saveReaction(B, { ideaId, reason: "domain", comment: "Écrit par B" })).toBe(false);
+    expect((await getReaction(A, ideaId))?.reason).toBe("budget");
   });
 
   it("B ne lit rien de A, même avec les bons identifiants", async () => {
@@ -136,6 +145,8 @@ describe("isolation entre comptes", () => {
     expect(exported).not.toContain(ideaId);
     expect(exported).not.toContain("Secret de A");
     expect(exported).not.toContain("Question privée de A");
+    expect(exported).not.toContain("Commentaire privé de A");
+    expect(exported).not.toContain("Réserve secrète de A");
   });
 
   it("l'export de A contient ses données en clair", async () => {
@@ -143,6 +154,8 @@ describe("isolation entre comptes", () => {
     expect(exported).toContain("Secret de A");
     expect(exported).toContain("Question privée de A");
     expect(exported).toContain("Prix fixé par A");
+    expect(exported).toContain("Commentaire privé de A");
+    expect(exported).toContain("Réserve secrète de A");
   });
 
   it("une suppression échue efface tout le compte", async () => {

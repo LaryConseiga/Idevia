@@ -68,6 +68,35 @@ export default async function AdminOverviewPage() {
         </Card>
       </section>
 
+      <section aria-labelledby="reactions">
+        <h2 id="reactions" className="text-xl font-bold">
+          Réactions aux idées
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {int.format(overview.reactions.users)} compte{overview.reactions.users > 1 ? "s ont" : " a"} réagi. Les commentaires restent
+          privés : seules les raisons sont comptées.
+        </p>
+        {overview.reactions.byReason.length > 0 && (
+          <Card className="mt-4 flex flex-col gap-3 p-5">
+            {overview.reactions.byReason.map((row) => {
+              const total = overview.reactions.byReason.reduce((sum, r) => sum + r.count, 0);
+              return (
+                <div key={row.label} className="grid grid-cols-[minmax(0,16rem)_1fr_auto] items-center gap-3 text-sm">
+                  <span className="font-medium">{row.label}</span>
+                  <span className="h-3 overflow-hidden rounded-full bg-muted">
+                    <span className="block h-full rounded-full bg-primary" style={{ width: `${Math.max(2, Math.round((row.count / total) * 100))}%` }} />
+                  </span>
+                  <span className="w-28 text-right tabular-nums">
+                    {int.format(row.count)}
+                    <span className="text-muted-foreground"> · {pct(row.count, total)}</span>
+                  </span>
+                </div>
+              );
+            })}
+          </Card>
+        )}
+      </section>
+
       <section aria-labelledby="activite">
         <h2 id="activite" className="text-xl font-bold">
           Activité

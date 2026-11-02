@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { IdeaDetail } from "@/components/ideas/idea-detail";
+import { IdeaReaction } from "@/components/ideas/idea-reaction";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { requireUser } from "@/server/dal/session";
@@ -27,7 +28,19 @@ export default async function IdeaPage({ params }: PageProps<"/idees/[id]">) {
           <ArrowLeft className="size-4" aria-hidden /> Mes 3 idées
         </Link>
       }
-      footer={<ChooseIdea ideaId={idea.id} selected={idea.selected} />}
+      footer={
+        <>
+          {!idea.selected && (
+            <section aria-labelledby="reaction" className="flex flex-col gap-3 rounded-card border border-border bg-card p-5 sm:p-6">
+              <h2 id="reaction" className="font-semibold">
+                Pourrais-tu réellement envisager de la développer ?
+              </h2>
+              <IdeaReaction ideaId={idea.id} initial={idea.reaction} />
+            </section>
+          )}
+          <ChooseIdea ideaId={idea.id} selected={idea.selected} />
+        </>
+      }
     />
   );
 }

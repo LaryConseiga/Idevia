@@ -23,12 +23,14 @@ import {
  *    avec des poids fixes, pour qu'il soit stable et explicable.
  * 3. Sélection : les 3 meilleures, de familles différentes, classées de la plus à la moins pertinente.
  * 4. Rédaction : une fiche et un plan d'action sur 30 jours pour chacune, en parallèle.
+ * Les candidates non retenues (et non éliminées) forment la réserve : on y puise sans relancer toute la génération.
  */
 
 type Generate = ReturnType<typeof createRouter>["generate"];
 
 export const IDEAS_PER_GENERATOR = 6;
 export const KEEP = 3;
+export const RESERVE_SIZE = 9;
 /** Écart de score accepté pour garder une idée qui dépasse le lieu de vie (sur 100). */
 const REACH_TOLERANCE = 12;
 
@@ -40,12 +42,21 @@ export type GeneratedIdea = {
   content: IdeaContent;
 };
 
+/** Idée notée mais pas rédigée : rédigée à la demande si la personne écarte une des trois. */
+export type ReserveIdea = {
+  candidate: Candidate;
+  score: number | null;
+  breakdown: ScoreBreakdown;
+  judgement: Judgement | null;
+};
+
 export type PipelineTrace = {
   generators: string[];
   judge: string | null;
   writers: string[];
   candidates: number;
   eliminated: number;
+  reserve?: number;
   durationMs: number;
 };
 
@@ -138,7 +149,8 @@ export function select(
     const alternative = ranked.find((s) => !picked.includes(s) && beyond(s));
     if (alternative && (alternative.score ?? 0) >= (last.score ?? 0) - REACH_TOLERANCE) picked[picked.length - 1] = alternative;
   }
-  return { picked, eliminated: scored.length - ranked.length };
+  const reserve = ranked.filter((s) => !picked.includes(s)).slice(0, RESERVE_SIZE);
+  return { picked, reserve, eliminated: scored.length - ranked.length };
 }
 
 const breakdownOf = (j: Judgement | null): ScoreBreakdown =>
@@ -152,7 +164,7 @@ export async function runIdeasPipeline(input: {
   generate: Generate;
   userId: string;
   now?: () => number;
-}): Promise<{ ideas: GeneratedIdea[]; trace: PipelineTrace }> {
+}): Promise<{ ideas: GeneratedIdea[]; reserve: ReserveIdea[]; trace: PipelineTrace }> {
   const now = input.now ?? Date.now;
   const started = now();
   const brief = profileBrief(input.state, input.portrait);
@@ -200,7 +212,7 @@ export async function runIdeasPipeline(input: {
   });
 
   // 3. Sélection
-  const { picked, eliminated } = select(candidates, judged?.data.scores ?? null, {
+  const { picked, reserve, eliminated } = select(candidates, judged?.data.scores ?? null, {
     localOnly: input.state.slots.market?.value.scope === "local",
   });
   if (picked.length < KEEP) throw new IdeasPipelineError("no_candidates");
@@ -233,12 +245,14 @@ export async function runIdeasPipeline(input: {
 
   return {
     ideas,
+    reserve: reserve.map((r) => ({ candidate: r.candidate, score: r.score, breakdown: breakdownOf(r.judgement), judgement: r.judgement })),
     trace: {
       generators: [anchored, bold].filter(Boolean).map((g) => `${g!.provider}:${g!.model}`),
       judge: judged ? `${judged.provider}:${judged.model}` : null,
       writers: written.map((w) => `${w!.provider}:${w!.model}`),
       candidates: candidates.length,
       eliminated,
+      reserve: reserve.length,
       durationMs: now() - started,
     },
   };

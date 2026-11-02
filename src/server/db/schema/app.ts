@@ -4,6 +4,7 @@ import {
   boolean,
   customType,
   date,
+  check,
   index,
   integer,
   jsonb,
@@ -13,6 +14,7 @@ import {
   serial,
   smallint,
   text,
+  unique,
   timestamp,
   uniqueIndex,
   uuid,
@@ -142,6 +144,8 @@ export const ideaBatches = pgTable(
     errorCode: text("error_code"),
     /** Traçabilité de l'orchestration : modèles utilisés, nombre de candidates, durées. Aucune donnée personnelle. */
     pipeline: jsonb("pipeline"),
+    /** Idées notées mais non retenues (candidate, note, avis du juge), rédigées à la demande : chiffrées. */
+    reserveEnc: text("reserve_enc"),
     createdAt: createdAt(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
   },
@@ -170,6 +174,41 @@ export const businessIdeas = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("business_ideas_user_id_idx").on(t.userId), index("business_ideas_batch_idx").on(t.batchId, t.rank)],
+);
+
+export const ideaReactionReason = pgEnum("idea_reaction_reason", [
+  "interested",
+  "not_for_me",
+  "budget",
+  "skills",
+  "domain",
+  "none",
+]);
+
+/**
+ * Réaction de la personne à une idée (ou à tout le lot, raison « none ») : une seule par idée, modifiable.
+ * Le commentaire libre est chiffré ; l'administration ne voit que la répartition des raisons.
+ */
+export const ideaReactions = pgTable(
+  "idea_reactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userRef(),
+    batchId: uuid("batch_id")
+      .notNull()
+      .references(() => ideaBatches.id, { onDelete: "cascade" }),
+    ideaId: uuid("idea_id").references(() => businessIdeas.id, { onDelete: "cascade" }),
+    reason: ideaReactionReason("reason").notNull(),
+    commentEnc: text("comment_enc"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    unique("idea_reactions_batch_idea_uq").on(t.batchId, t.ideaId).nullsNotDistinct(),
+    index("idea_reactions_user_idx").on(t.userId),
+    // « none » vise tout le lot ; les autres raisons, une idée précise.
+    check("idea_reactions_target_ck", sql`(${t.reason} = 'none') = (${t.ideaId} is null)`),
+  ],
 );
 
 // ---------------------------------------------------------------- Projets

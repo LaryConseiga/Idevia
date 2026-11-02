@@ -64,6 +64,20 @@
       "when": 1793130711470,
       "tag": "0008_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793661846965,
+      "tag": "0009_idea_reactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793661854207,
+      "tag": "0010_idea_reactions_rls",
+      "breakpoints": true
     }
   ]
 }

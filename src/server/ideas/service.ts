@@ -8,12 +8,15 @@ import {
   failBatch,
   getIdea,
   getLatestBatch,
+  getReaction,
   getSelectedIdea,
+  saveReaction,
   selectIdea,
   startBatch,
   type StoredIdea,
 } from "@/server/dal/ideas";
 import { getPlan } from "@/server/dal/profile";
+import type { IdeaReactionReason, ReactionView } from "@/lib/idea-reactions";
 import { env } from "@/server/env";
 import { consume, limits } from "@/server/ratelimit";
 import { isLocked } from "./access";
@@ -39,7 +42,7 @@ async function quotaLeft(userId: string) {
   return Math.max(0, env.IDEAS_MONTHLY_QUOTA - (await countBatchesThisMonth(userId)));
 }
 
-function toCard(idea: StoredIdea, locked: boolean): IdeaCardView {
+function toCard(idea: StoredIdea, locked: boolean, reaction: ReactionView | null): IdeaCardView {
   if (locked) return { locked: true, id: idea.id, rank: idea.rank, score: idea.score };
   return {
     locked: false,
@@ -52,6 +55,7 @@ function toCard(idea: StoredIdea, locked: boolean): IdeaCardView {
     reach: idea.reach ? REACH_LABELS[idea.reach] : null,
     nature: idea.nature ? NATURE_LABELS[idea.nature] : null,
     selected: idea.status === "selected",
+    reaction,
   };
 }
 
@@ -74,13 +78,16 @@ export async function getIdeasState(userId: string): Promise<IdeasState> {
       return {
         status: "ready",
         quotaLeft: await quotaLeft(userId),
-        ideas: batch.ideas.map((idea) => toCard(idea, isLocked(idea.rank, plan, env.IDEAS_PAYWALL))),
+        ideas: batch.ideas.map((idea) =>
+          toCard(idea, isLocked(idea.rank, plan, env.IDEAS_PAYWALL), batch.reactions.byIdea[idea.id] ?? null),
+        ),
+        batchReaction: batch.reactions.batch,
       };
   }
 }
 
 export async function getIdeaDetail(userId: string, ideaId: string): Promise<IdeaDetailView | "locked" | null> {
-  const [idea, plan] = await Promise.all([getIdea(userId, ideaId), getPlan(userId)]);
+  const [idea, plan, reaction] = await Promise.all([getIdea(userId, ideaId), getPlan(userId), getReaction(userId, ideaId)]);
   if (!idea?.content) return null;
   if (isLocked(idea.rank, plan, env.IDEAS_PAYWALL)) return "locked";
   return {
@@ -98,6 +105,7 @@ export async function getIdeaDetail(userId: string, ideaId: string): Promise<Ide
     reach: idea.reach ? REACH_LABELS[idea.reach] : null,
     nature: idea.nature ? NATURE_LABELS[idea.nature] : null,
     selected: idea.status === "selected",
+    reaction,
   };
 }
 
@@ -122,13 +130,13 @@ export async function requestIdeas(userId: string): Promise<RequestResult> {
 
   after(async () => {
     try {
-      const { ideas, trace } = await runIdeasPipeline({
+      const { ideas, reserve, trace } = await runIdeasPipeline({
         state: diagnostic.state,
         portrait: diagnostic.portrait,
         generate: ai.generate,
         userId,
       });
-      await completeBatch(userId, started.batchId, diagnostic.id, ideas, trace);
+      await completeBatch(userId, started.batchId, diagnostic.id, ideas, reserve, trace);
     } catch (error) {
       const code = error instanceof IdeasPipelineError ? error.code : "internal";
       console.error("[idees] génération échouée :", code, error instanceof Error && code === "internal" ? error.message : "");
@@ -144,6 +152,19 @@ export async function chooseIdea(userId: string, ideaId: string): Promise<Reques
   if (isLocked(idea.rank, plan, env.IDEAS_PAYWALL)) return { ok: false, error: "Cette idée fait partie de l'offre Pro." };
   await selectIdea(userId, ideaId);
   return { ok: true };
+}
+
+/** Réaction à une idée visible (jamais une idée verrouillée), ou à tout le lot si `ideaId` est nul. */
+export async function reactToIdeas(
+  userId: string,
+  input: { ideaId: string | null; reason: IdeaReactionReason; comment: string | null },
+): Promise<RequestResult> {
+  if (input.ideaId) {
+    const [idea, plan] = await Promise.all([getIdea(userId, input.ideaId), getPlan(userId)]);
+    if (!idea) return { ok: false, error: "Idée introuvable." };
+    if (isLocked(idea.rank, plan, env.IDEAS_PAYWALL)) return { ok: false, error: "Cette idée fait partie de l'offre Pro." };
+  }
+  return (await saveReaction(userId, input)) ? { ok: true } : { ok: false, error: "Idée introuvable." };
 }
 
 export { getSelectedIdea };

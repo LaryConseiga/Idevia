@@ -1,5 +1,6 @@
 import "server-only";
 import { and, desc, eq, ilike, sql } from "drizzle-orm";
+import { REACTION_LABELS, type IdeaReactionReason } from "@/lib/idea-reactions";
 import { adminAuditLogs } from "@/server/db/schema";
 import { user } from "@/server/db/schema/auth";
 import { withSystem } from "./context";
@@ -13,6 +14,8 @@ export type Overview = {
   users: { total: number; last7: number; verified: number; banned: number };
   funnel: { label: string; count: number }[];
   activity: { label: string; month: number; total: number }[];
+  /** Réactions aux idées : comptes qui ont réagi et répartition des raisons (jamais les commentaires). */
+  reactions: { users: number; byReason: { label: string; count: number }[] };
   waitlist: number;
   pendingDeletions: number;
 };
@@ -21,6 +24,9 @@ const n = (v: unknown) => Number(v ?? 0);
 
 export function getOverview(): Promise<Overview> {
   return withSystem("admin:overview", async (tx) => {
+    const reasons = await tx.execute<Record<string, unknown>>(
+      sql`select reason, count(*) as count from idea_reactions group by reason order by count desc`,
+    );
     const { rows } = await tx.execute<Record<string, unknown>>(sql`
       select
         (select count(*) from "user") as users,
@@ -29,6 +35,7 @@ export function getOverview(): Promise<Overview> {
         (select count(*) from "user" where coalesce(banned, false)) as banned,
         (select count(distinct user_id) from diagnostics where user_id is not null and status = 'completed') as f_diag,
         (select count(distinct user_id) from idea_batches where status = 'ready') as f_ideas,
+        (select count(distinct user_id) from idea_reactions) as f_reacted,
         (select count(distinct user_id) from projects) as f_project,
         (select count(distinct user_id) from tasks where status = 'done') as f_task,
         (select count(distinct user_id) from field_checks where status = 'ready') as f_field,
@@ -65,6 +72,10 @@ export function getOverview(): Promise<Overview> {
         { label: "Messages au coach", month: n(r.a_coach_m), total: n(r.a_coach) },
         { label: "Diagnostics anonymes en cours", month: n(r.anon_diag), total: n(r.anon_diag) },
       ],
+      reactions: {
+        users: n(r.f_reacted),
+        byReason: reasons.rows.map((row) => ({ label: REACTION_LABELS[row.reason as IdeaReactionReason], count: n(row.count) })),
+      },
       waitlist: n(r.waitlist),
       pendingDeletions: n(r.deletions),
     };

@@ -4,10 +4,12 @@ import { ArrowRight, Check, Clock, Compass, Globe2, Lightbulb, Lock, PenLine, Re
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { IdeaReaction } from "@/components/ideas/idea-reaction";
 import { RANK_LABELS, ScoreRing } from "@/components/ideas/score-ring";
 import { Button } from "@/components/ui/button";
 import { Alert, Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import type { ReactionView } from "@/lib/idea-reactions";
 import type { IdeaCardView, IdeasState } from "@/server/ideas/view";
 import { generateIdeasAction, joinWaitlistAction } from "./actions";
 
@@ -22,7 +24,7 @@ export function IdeasView({ state }: { state: IdeasState }) {
     case "failed":
       return <Start quotaLeft={state.quotaLeft} failure={state.message} />;
     case "ready":
-      return <Ready ideas={state.ideas} quotaLeft={state.quotaLeft} />;
+      return <Ready ideas={state.ideas} quotaLeft={state.quotaLeft} batchReaction={state.batchReaction} />;
   }
 }
 
@@ -178,7 +180,7 @@ function Running({ startedAt }: { startedAt: string }) {
   );
 }
 
-function Ready({ ideas, quotaLeft }: { ideas: IdeaCardView[]; quotaLeft: number }) {
+function Ready({ ideas, quotaLeft, batchReaction }: { ideas: IdeaCardView[]; quotaLeft: number; batchReaction: ReactionView | null }) {
   const { generate, pending, error } = useGenerate();
   const [best, ...others] = ideas;
   return (
@@ -190,6 +192,10 @@ function Ready({ ideas, quotaLeft }: { ideas: IdeaCardView[]; quotaLeft: number 
           Chacune vient avec un plan concret pour tes 30 premiers jours. Ouvre-les, compare, puis choisis celle avec
           laquelle tu veux avancer.
         </p>
+        <p className="mt-5 max-w-prose rounded-xl border border-primary/30 bg-primary-soft/40 px-4 py-3 font-medium">
+          Parmi ces idées, laquelle pourrais-tu réellement envisager de développer ?{" "}
+          <span className="font-normal text-muted-foreground">Dis-le-moi sous chaque idée, même en un clic.</span>
+        </p>
       </header>
 
       {best && <IdeaCard idea={best} featured />}
@@ -199,13 +205,16 @@ function Ready({ ideas, quotaLeft }: { ideas: IdeaCardView[]; quotaLeft: number 
         ))}
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">
-          Aucune ne te parle vraiment ? {quotaLeft > 0 ? `Il te reste ${quotaLeft} nouvelle${quotaLeft > 1 ? "s" : ""} génération${quotaLeft > 1 ? "s" : ""} ce mois-ci.` : "Tes nouvelles générations reviennent le mois prochain."}
-        </p>
-        <Button variant="secondary" onClick={generate} disabled={pending || quotaLeft === 0} aria-busy={pending}>
-          <RefreshCw aria-hidden /> Proposer 3 autres idées
-        </Button>
+      <div className="flex flex-col gap-4 border-t border-border pt-6">
+        <IdeaReaction ideaId={null} initial={batchReaction} />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            {quotaLeft > 0 ? `Il te reste ${quotaLeft} nouvelle${quotaLeft > 1 ? "s" : ""} génération${quotaLeft > 1 ? "s" : ""} ce mois-ci.` : "Tes nouvelles générations reviennent le mois prochain."}
+          </p>
+          <Button variant="secondary" onClick={generate} disabled={pending || quotaLeft === 0} aria-busy={pending}>
+            <RefreshCw aria-hidden /> Proposer 3 autres idées
+          </Button>
+        </div>
       </div>
       {error && <Alert tone="error">{error}</Alert>}
     </div>
@@ -270,6 +279,8 @@ function IdeaCard({ idea, featured = false }: { idea: IdeaCardView; featured?: b
           Voir l&apos;idée et son plan <ArrowRight aria-hidden />
         </Link>
       </Button>
+
+      {!idea.selected && <IdeaReaction ideaId={idea.id} initial={idea.reaction} className="border-t border-border pt-5" />}
     </Card>
   );
 }

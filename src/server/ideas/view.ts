@@ -1,3 +1,4 @@
+import type { ReactionView } from "@/lib/idea-reactions";
 import type { Criterion, IdeaContent } from "./schemas";
 
 /** Ce que le navigateur reçoit. Une idée verrouillée n'expose ni son titre ni son contenu. */
@@ -13,6 +14,7 @@ export type IdeaCardView =
       reach: string | null;
       nature: string | null;
       selected: boolean;
+      reaction: ReactionView | null;
     }
   | { locked: true; id: string; rank: number; score: number | null };
 
@@ -25,6 +27,7 @@ export type IdeaDetailView = {
   reach: string | null;
   nature: string | null;
   selected: boolean;
+  reaction: ReactionView | null;
 };
 
 export type IdeasState =
@@ -32,4 +35,4 @@ export type IdeasState =
   | { status: "none"; quotaLeft: number }
   | { status: "running"; startedAt: string }
   | { status: "failed"; quotaLeft: number; message: string }
-  | { status: "ready"; ideas: IdeaCardView[]; quotaLeft: number };
+  | { status: "ready"; ideas: IdeaCardView[]; quotaLeft: number; batchReaction: ReactionView | null };

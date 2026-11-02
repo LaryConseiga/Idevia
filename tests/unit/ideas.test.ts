@@ -86,6 +86,23 @@ describe("score et sélection", () => {
     expect(eliminated).toBe(1);
   });
 
+  it("garde en réserve les idées non retenues, sans les éliminées, de la mieux à la moins bien notée", () => {
+    const candidates = ["A", "B", "C", "D", "E", "F"].map((t) => candidate(t, t.toLowerCase()));
+    const { picked, reserve } = select(candidates, [
+      judge(0, 9, "a"),
+      judge(1, 8, "b"),
+      judge(2, 10, "c", true),
+      judge(3, 7, "d"),
+      judge(4, 5, "e"),
+      judge(5, 6, "f"),
+    ]);
+    expect(picked.map((p) => p.candidate.title)).toEqual(["A", "B", "D"]);
+    expect(reserve.map((r) => [r.candidate.title, r.score])).toEqual([
+      ["F", 60],
+      ["E", 50],
+    ]);
+  });
+
   it("complète avec la même famille s'il n'y a pas assez de diversité", () => {
     const candidates = [candidate("A", "repas"), candidate("B", "repas"), candidate("C", "repas")];
     expect(select(candidates, null).picked).toHaveLength(3);
@@ -159,7 +176,7 @@ describe("orchestration complète", () => {
 
   it("produit 3 idées classées avec leur plan, et trace les modèles utilisés", async () => {
     const generate = fakeGenerate();
-    const { ideas, trace } = await runIdeasPipeline({ state: emptyProfile(), portrait: null, generate: generate as never, userId: "u1" });
+    const { ideas, reserve, trace } = await runIdeasPipeline({ state: emptyProfile(), portrait: null, generate: generate as never, userId: "u1" });
     expect(ideas.map((i) => [i.rank, i.content.title])).toEqual([
       [1, "Épices en sachet"],
       [2, "Box repas abonnement"],
@@ -168,6 +185,10 @@ describe("orchestration complète", () => {
     expect(ideas[0].breakdown?.skills).toBe(90);
     expect(trace.candidates).toBe(5);
     expect(generate).toHaveBeenCalledTimes(2 + 1 + 3);
+    // Les deux idées non retenues restent disponibles, notées, sans avoir été rédigées.
+    expect(reserve.map((r) => r.candidate.title)).toEqual(["Jus de bissap", "Cours de cuisine"]);
+    expect(reserve[0].breakdown?.skills).toBe(50);
+    expect(trace.reserve).toBe(2);
   });
 
   it("reste fonctionnelle sans juge (scores absents, ordre des générateurs)", async () => {

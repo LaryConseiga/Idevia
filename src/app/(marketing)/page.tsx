@@ -14,10 +14,12 @@ export const metadata: Metadata = { alternates: { canonical: "/" } };
 const base = process.env.APP_URL ?? "http://localhost:3000";
 
 const KINDS: { photo: Photo; kind: string }[] = [
-  { photo: PHOTOS.beignets, kind: "Restauration" },
+  { photo: PHOTOS.venteEnLigne, kind: "Vente en ligne" },
+  { photo: PHOTOS.coiffure, kind: "Service" },
+  { photo: PHOTOS.hydroponie, kind: "Agriculture" },
+  { photo: PHOTOS.formation, kind: "Formation" },
+  { photo: PHOTOS.foodTruck, kind: "Restauration" },
   { photo: PHOTOS.maroquinerie, kind: "Fabrication" },
-  { photo: PHOTOS.reparation, kind: "Service" },
-  { photo: PHOTOS.marche, kind: "Commerce" },
 ];
 
 const STEPS = [
@@ -93,11 +95,11 @@ export default function HomePage() {
         </div>
 
         <div className="relative lg:pl-6">
-          <Figure photo={PHOTOS.recolte} sizes="(min-width: 1024px) 40vw, 100vw" className="aspect-[4/5] max-lg:aspect-[4/3]" priority />
+          <Figure photo={PHOTOS.projet} sizes="(min-width: 1024px) 40vw, 100vw" className="aspect-[4/5] max-lg:aspect-[4/3]" priority />
           <Figure
-            photo={PHOTOS.maroquinerie}
+            photo={PHOTOS.hydroponie}
             sizes="220px"
-            className="absolute -top-8 -left-6 hidden aspect-[4/3] w-52 rotate-[-3deg] border-4 border-background shadow-card xl:block"
+            className="absolute -top-8 -left-6 hidden aspect-[3/4] w-40 rotate-[-3deg] border-4 border-background shadow-card xl:block"
             hideCaption
           />
         </div>
@@ -107,19 +109,17 @@ export default function HomePage() {
       <section id="idees" className="border-t border-border">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <div className="grid gap-6 lg:grid-cols-[1fr_1fr] lg:items-end">
-            <h2 className="text-4xl leading-tight font-medium tracking-tight sm:text-5xl">
-              Pas seulement du commerce en ligne.
-            </h2>
+            <h2 className="text-4xl leading-tight font-medium tracking-tight sm:text-5xl">Des idées de toutes natures.</h2>
             <p className="max-w-lg leading-relaxed text-muted-foreground">
-              Un étal de beignets, un atelier de maroquinerie, un coin de réparation, une boutique de quartier, un jardin
-              maraîcher ou une formation en ligne : tes trois idées sont de natures différentes, et toutes partent de ce que
-              tu sais déjà faire.
+              Une boutique en ligne, un food truck, une ferme moderne, un salon, une formation ou un atelier, à Paris, à
+              Casablanca, à Abidjan, à Montréal ou depuis chez toi : tes trois idées sont de natures différentes, et toutes
+              partent de ce que tu sais déjà faire.
             </p>
           </div>
-          <ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4">
+          <ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-3 lg:gap-x-6">
             {KINDS.map(({ photo, kind }, i) => (
-              <li key={kind} className={cn(i % 2 === 1 && "lg:mt-12")}>
-                <Figure photo={photo} sizes="(min-width: 1024px) 25vw, 50vw" className="aspect-[3/4]" label={kind} />
+              <li key={kind} className={cn(i % 3 === 1 && "lg:mt-12")}>
+                <Figure photo={photo} sizes="(min-width: 1024px) 33vw, 50vw" className="aspect-[4/5]" label={kind} />
               </li>
             ))}
           </ul>
@@ -158,14 +158,14 @@ export default function HomePage() {
           <div>
             <p className="text-sm text-band-muted">Avant</p>
             <p className="mt-3 font-display text-3xl leading-snug text-band-muted line-through decoration-1 sm:text-4xl">
-              « Je veux vendre des vêtements. »
+              « Je veux faire quelque chose dans la cuisine. »
             </p>
           </div>
           <div>
             <p className="text-sm text-band-muted">Après dix minutes avec Idevia</p>
             <p className="mt-3 font-display text-3xl leading-snug sm:text-4xl">
-              Des kits mère-enfant en wax pour les baptêmes à Abidjan, à 30 000 FCFA avec 50 % d&apos;acompte, vendus sur
-              WhatsApp, là où aucun concurrent ne fait de publicité.
+              Des plats du midi livrés aux bureaux du quartier de la Part-Dieu à Lyon, 12 € le menu, commandés la veille par
+              message, le temps de tester avant d&apos;investir dans un local.
             </p>
           </div>
         </div>
@@ -220,7 +220,7 @@ function PrimaryLink({ href, children }: { href: string; children: ReactNode }) 
   );
 }
 
-/** Photo avec légende et crédit (licence CC BY-SA : l'auteur est toujours cité). */
+/** Photo avec légende et crédit (licences Creative Commons : l'auteur et la licence sont toujours cités). */
 function Figure({
   photo,
   sizes,
@@ -253,7 +253,7 @@ function Figure({
       {!hideCaption && (
         <figcaption className="mt-2 text-xs leading-relaxed text-muted-foreground">
           {label && <span className="block text-sm font-medium text-foreground">{label}</span>}
-          {photo.caption}. Photo {photo.author}, CC BY-SA.
+          {photo.caption}. Photo {photo.author}, {photo.license.name}.
         </figcaption>
       )}
     </figure>

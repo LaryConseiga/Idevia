@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageShell, Prose, Todo } from "@/components/marketing/page-shell";
-import { PHOTO_LICENSE, PHOTOS } from "@/lib/photos";
+import { PHOTOS } from "@/lib/photos";
 import { HOST, PUBLISHER, SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -44,14 +44,14 @@ export default function LegalNoticePage() {
           Crédits photos
         </h2>
         <p>
-          Les photos de la page d&apos;accueil viennent de Wikimedia Commons et sont publiées sous licence{" "}
-          <a href={PHOTO_LICENSE.url}>{PHOTO_LICENSE.name}</a>. Elles ont été recadrées et compressées ; ces versions
-          modifiées sont diffusées sous la même licence.
+          Les photos de la page d&apos;accueil viennent de Wikimedia Commons, sous licences Creative Commons. Elles ont
+          été recadrées et compressées ; pour les photos sous licence BY-SA, ces versions modifiées sont diffusées sous
+          la même licence.
         </p>
         <ul>
           {Object.values(PHOTOS).map((photo) => (
             <li key={photo.source}>
-              {photo.caption} : photo <a href={photo.source}>{photo.author}</a>, {PHOTO_LICENSE.name}.
+              {photo.caption} : photo <a href={photo.source}>{photo.author}</a>, <a href={photo.license.url}>{photo.license.name}</a>.
             </li>
           ))}
         </ul>

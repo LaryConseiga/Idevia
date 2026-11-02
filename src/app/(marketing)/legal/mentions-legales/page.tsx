@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PageShell, Prose, Todo } from "@/components/marketing/page-shell";
+import { PHOTO_LICENSE, PHOTOS } from "@/lib/photos";
 import { HOST, PUBLISHER, SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -38,6 +39,22 @@ export default function LegalNoticePage() {
           La marque Idevia, le site, ses textes, son design et son code sont protégés. Les contenus que tu crées avec
           Idevia (réponses, idées retenues, notes, plan) t&apos;appartiennent.
         </p>
+
+        <h2 id="credits-photos" className="scroll-mt-24">
+          Crédits photos
+        </h2>
+        <p>
+          Les photos de la page d&apos;accueil viennent de Wikimedia Commons et sont publiées sous licence{" "}
+          <a href={PHOTO_LICENSE.url}>{PHOTO_LICENSE.name}</a>. Elles ont été recadrées et compressées ; ces versions
+          modifiées sont diffusées sous la même licence.
+        </p>
+        <ul>
+          {Object.values(PHOTOS).map((photo) => (
+            <li key={photo.source}>
+              {photo.caption} : photo <a href={photo.source}>{photo.author}</a>, {PHOTO_LICENSE.name}.
+            </li>
+          ))}
+        </ul>
 
         <h2>Responsabilité</h2>
         <p>

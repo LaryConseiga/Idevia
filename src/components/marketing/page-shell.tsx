@@ -7,7 +7,7 @@ export function PageShell({ eyebrow, title, intro, children, wide }: { eyebrow?:
     <div className={cn("mx-auto px-4 py-12 sm:px-6 sm:py-16", wide ? "max-w-5xl" : "max-w-3xl")}>
       <header className="max-w-3xl">
         {eyebrow && <p className="text-sm font-semibold tracking-wide text-primary uppercase">{eyebrow}</p>}
-        <h1 className="mt-2 text-4xl leading-tight font-bold text-balance sm:text-5xl">{title}</h1>
+        <h1 className="mt-2 text-4xl leading-tight font-medium tracking-tight text-balance sm:text-5xl">{title}</h1>
         {intro && <div className="mt-4 text-lg leading-relaxed text-muted-foreground">{intro}</div>}
       </header>
       <div className="mt-10">{children}</div>

@@ -44,16 +44,16 @@ export const FAQS = [
 
 export function FaqList({ items }: { items: { q: string; a: string }[] }) {
   return (
-    <div className="divide-y divide-border rounded-card border border-border bg-card">
+    <div className="divide-y divide-border border-y border-border">
       {items.map((item) => (
-        <details key={item.q} className="group px-5 py-1">
-          <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 font-semibold [&::-webkit-details-marker]:hidden">
+        <details key={item.q} className="group py-1">
+          <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 text-lg font-medium [&::-webkit-details-marker]:hidden">
             {item.q}
             <span aria-hidden className="text-xl text-muted-foreground transition-transform duration-200 group-open:rotate-45">
               +
             </span>
           </summary>
-          <p className="pb-4 leading-relaxed text-muted-foreground">{item.a}</p>
+          <p className="max-w-2xl pb-5 leading-relaxed text-muted-foreground">{item.a}</p>
         </details>
       ))}
     </div>

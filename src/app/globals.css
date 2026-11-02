@@ -6,11 +6,11 @@
  */
 
 :root {
-  /* Thème unique, sombre : choisi comme identité d'Idevia (pas de bascule claire selon l'appareil). */
+  /* Thème par défaut : sombre et chaud. Le thème clair est un choix de la personne (data-theme="light"). */
   --background: #12110f;
-  --foreground: #f5f1ea;
+  --foreground: #f3efe7;
   --card: #1c1a17;
-  --card-foreground: #f5f1ea;
+  --card-foreground: #f3efe7;
   --muted: #26231f;
   --muted-foreground: #a8a29e;
   --border: #34302b;
@@ -19,6 +19,7 @@
   --primary-hover: #4fd1a2;
   --primary-foreground: #06231a;
   --primary-soft: #12352a;
+  /* Terracotta : la seule couleur d'action (boutons principaux, chiffres des étapes). */
   --accent: #f08a5d;
   --accent-hover: #f5a07a;
   --accent-foreground: #2a0e03;
@@ -31,13 +32,51 @@
   --success: #4ade80;
   --success-foreground: #052e16;
   --success-soft: #11301c;
-  --sky: #60a5fa;
-  --violet: #a78bfa;
+  /* Bande « papier » de l'accueil : claire sur le thème sombre, sombre sur le thème clair. */
+  --band: #efe8dc;
+  --band-foreground: #1f1b16;
+  --band-muted: #5f574d;
   --ring: #34c08f;
   --radius: 0.875rem;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.25);
   color-scheme: dark;
 }
+
+:root[data-theme="light"] {
+  /* Fond blanc cassé chaud, proche du « Cloud Dancer » de Pantone 2026. Contrastes vérifiés AA. */
+  --background: #f6f2ea;
+  --foreground: #1f1b16;
+  --card: #fffdf8;
+  --card-foreground: #1f1b16;
+  --muted: #ece6db;
+  --muted-foreground: #645c52;
+  --border: #ddd5c7;
+  --input: #bfb4a2;
+  --primary: #1e7f5c;
+  --primary-hover: #186b4d;
+  --primary-foreground: #ffffff;
+  --primary-soft: #dcefe5;
+  --accent: #b9512a;
+  --accent-hover: #a44522;
+  --accent-foreground: #ffffff;
+  --accent-soft: #f6e0d4;
+  --highlight: #8a5a06;
+  --highlight-soft: #f4e6c6;
+  --destructive: #b8322b;
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #f7dddb;
+  --success: #1c7a45;
+  --success-foreground: #ffffff;
+  --success-soft: #dbefe1;
+  --band: #1f2a22;
+  --band-foreground: #f3efe7;
+  --band-muted: #b9c2b8;
+  --ring: #1e7f5c;
+  --shadow-card: 0 1px 2px rgb(31 27 22 / 0.06), 0 8px 24px rgb(31 27 22 / 0.08);
+  color-scheme: light;
+}
+
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
 
 @theme inline {
   --color-background: var(--background);
@@ -64,13 +103,14 @@
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-success-soft: var(--success-soft);
-  --color-sky: var(--sky);
-  --color-violet: var(--violet);
+  --color-band: var(--band);
+  --color-band-foreground: var(--band-foreground);
+  --color-band-muted: var(--band-muted);
   --color-ring: var(--ring);
   --radius-card: var(--radius);
   --shadow-card: var(--shadow-card);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-figtree), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
 }
 
 @layer base {
@@ -170,94 +210,4 @@
   background: var(--muted);
   padding: 0.1rem 0.35rem;
   font-size: 0.9em;
-}
-
-/* Fond animé de la page d'accueil (voir components/marketing/home-background.tsx). */
-.home-grid {
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--border) 45%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--border) 45%, transparent) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(ellipse 70% 55% at 50% 30%, black, transparent);
-  animation: home-grid-pan 40s linear infinite;
-}
-.home-orb {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(90px);
-  opacity: 0.22;
-  will-change: transform;
-}
-.home-orb-a {
-  top: -10rem;
-  left: 10%;
-  width: 34rem;
-  height: 34rem;
-  background: var(--primary);
-  animation: home-drift-a 26s ease-in-out infinite alternate;
-}
-.home-orb-b {
-  top: 20rem;
-  right: 5%;
-  width: 28rem;
-  height: 28rem;
-  background: var(--accent);
-  opacity: 0.16;
-  animation: home-drift-b 32s ease-in-out infinite alternate;
-}
-.home-orb-c {
-  top: 60%;
-  left: 30%;
-  width: 30rem;
-  height: 30rem;
-  background: var(--violet);
-  opacity: 0.12;
-  animation: home-drift-a 38s ease-in-out infinite alternate-reverse;
-}
-.home-symbol {
-  animation-name: home-float;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-}
-@keyframes home-drift-a {
-  from {
-    transform: translate(0, 0) scale(1);
-  }
-  to {
-    transform: translate(6rem, 4rem) scale(1.15);
-  }
-}
-@keyframes home-drift-b {
-  from {
-    transform: translate(0, 0) scale(1.1);
-  }
-  to {
-    transform: translate(-7rem, 5rem) scale(0.9);
-  }
-}
-@keyframes home-float {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-    opacity: 0.35;
-  }
-  50% {
-    transform: translateY(-18px) rotate(4deg);
-    opacity: 0.8;
-  }
-}
-@keyframes home-grid-pan {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 64px 64px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .home-grid,
-  .home-orb,
-  .home-symbol {
-    animation: none;
-  }
 }

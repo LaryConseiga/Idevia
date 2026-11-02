@@ -1,10 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Figtree, Inter } from "next/font/google";
+import { Fraunces, Inter } from "next/font/google";
+import Script from "next/script";
 import { Pwa } from "@/components/pwa";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree", display: "swap", weight: ["500", "600", "700"] });
+// Titres : une serif à caractère, pour une voix éditoriale plutôt que « modèle de site ».
+const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces", display: "swap", axes: ["opsz", "SOFT"] });
+
+/** Applique le thème choisi avant le premier affichage (pas de flash). Sombre par défaut. */
+const THEME_SCRIPT = `try{if(localStorage.getItem("idevia-theme")==="light"){document.documentElement.dataset.theme="light";document.querySelector('meta[name="theme-color"]')?.setAttribute("content","#F6F2EA")}}catch(e){}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
@@ -17,7 +22,13 @@ export const metadata: Metadata = {
   applicationName: "Idevia",
   formatDetection: { telephone: false },
   appleWebApp: { capable: true, title: "Idevia", statusBarStyle: "default" },
-  icons: { apple: "/icons/apple-touch-icon.png" },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
   openGraph: { type: "website", locale: "fr_FR", siteName: "Idevia" },
 };
 
@@ -30,8 +41,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${inter.variable} ${figtree.variable} antialiased`}>
+    <html lang="fr" className={`${inter.variable} ${fraunces.variable} antialiased`} suppressHydrationWarning>
       <body className="flex min-h-dvh flex-col">
+        <Script id="theme" strategy="beforeInteractive">
+          {THEME_SCRIPT}
+        </Script>
         <a
           href="#contenu"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:shadow-card"

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/server/env", () => ({ env: { DATA_ENCRYPTION_KEYS: "v1:" + randomBytes(32).toString("base64") } }));
 
-const { decryptWith, encryptWith, parseKeyring } = await import("@/server/crypto");
+const { decryptWith, encryptWith, isSealed, parseKeyring, pseudonym, seal, unseal, unsealOrNull } = await import("@/server/crypto");
 
 const key = () => randomBytes(32).toString("base64");
 
@@ -37,5 +37,24 @@ describe("chiffrement des champs sensibles", () => {
 
   it("refuse une clé de mauvaise taille", () => {
     expect(() => parseKeyring(`v1:${randomBytes(16).toString("base64")}`)).toThrow();
+  });
+});
+
+describe("colonnes devenues chiffrées et pseudonymes", () => {
+  it("reconnaît un texte chiffré, jamais un texte ordinaire qui lui ressemble", () => {
+    expect(isSealed(seal("Repas du midi livrés aux bureaux"))).toBe(true);
+    for (const text of ["v1.2 du plan", "Étape 1. Préparer. Vendre.", "v1.abc.def.ghi", ""]) expect(isSealed(text)).toBe(false);
+  });
+
+  it("lit le nouveau format comme l'ancien, le temps du rechiffrement", () => {
+    expect(unseal(seal("Ta première action"))).toBe("Ta première action");
+    expect(unseal("Ancien titre en clair")).toBe("Ancien titre en clair");
+    expect(unsealOrNull(null)).toBeNull();
+  });
+
+  it("donne un pseudonyme stable, différent pour chaque identifiant, sans laisser voir l'adresse", () => {
+    expect(pseudonym("203.0.113.7")).toBe(pseudonym("203.0.113.7"));
+    expect(pseudonym("203.0.113.7")).not.toBe(pseudonym("203.0.113.8"));
+    expect(pseudonym("203.0.113.7")).not.toMatch(/[.:]/);
   });
 });

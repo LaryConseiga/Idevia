@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { purgeDueDeletions } from "@/server/dal/account";
 import { purgeExpiredDiagnostics } from "@/server/dal/diagnostics";
+import { applyRetention } from "@/server/dal/retention";
 import { env } from "@/server/env";
 
 /** Purge quotidienne des données expirées et des comptes à supprimer (Vercel Cron envoie « Authorization: Bearer CRON_SECRET »). */
@@ -14,5 +15,6 @@ export async function GET(request: NextRequest) {
   const diagnostics = await purgeExpiredDiagnostics();
   // Comptes dont les 30 jours de grâce sont écoulés : effacement définitif.
   const accounts = await purgeDueDeletions();
-  return NextResponse.json({ diagnostics, accounts });
+  const retention = await applyRetention();
+  return NextResponse.json({ diagnostics, accounts, ...retention });
 }

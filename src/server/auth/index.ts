@@ -5,6 +5,7 @@ import { nextCookies } from "better-auth/next-js";
 import { admin, haveIBeenPwned, magicLink, twoFactor } from "better-auth/plugins";
 import { db } from "@/server/db/client";
 import * as schema from "@/server/db/schema";
+import { pseudonym } from "@/server/crypto";
 import { withSystem } from "@/server/dal/context";
 import { emails } from "@/server/email/templates";
 import { sendEmail } from "@/server/email/send";
@@ -94,6 +95,15 @@ export const auth = betterAuth({
   disabledPaths: ["/admin/impersonate-user", "/admin/stop-impersonating"],
 
   databaseHooks: {
+    // L'adresse IP de connexion n'est gardée que sous forme de pseudonyme : elle sert à repérer un abus, pas à te localiser.
+    session: {
+      create: { before: async (session) => ({ data: { ...session, ipAddress: session.ipAddress ? pseudonym(session.ipAddress) : null } }) },
+      update: {
+        before: async (session) => ({
+          data: session.ipAddress ? { ...session, ipAddress: pseudonym(session.ipAddress) } : session,
+        }),
+      },
+    },
     user: {
       create: {
         after: async (user) => {

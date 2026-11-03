@@ -1,5 +1,5 @@
 import "server-only";
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 import { env } from "@/server/env";
 
 /**
@@ -56,6 +56,26 @@ export const decrypt = (payload: string) => decryptWith(getKeyring(), payload);
 
 export const encryptJson = (value: unknown) => encrypt(JSON.stringify(value));
 export const decryptJson = <T>(payload: string): T => JSON.parse(decrypt(payload)) as T;
+
+/**
+ * Colonnes historiquement en clair (titres d'idées, nom du projet, étapes du plan, hypothèses), désormais chiffrées
+ * sans changer de nom. `unseal` lit encore les anciennes valeurs en clair, le temps que `npm run db:seal` les chiffre.
+ */
+const SEALED = /^v\d+\.[\w-]{16}\.[\w-]{22}\.[\w-]*$/;
+export const isSealed = (value: string) => SEALED.test(value);
+export const seal = (value: string) => encrypt(value);
+export const sealOrNull = (value: string | null | undefined) => (value == null ? null : encrypt(value));
+export const unseal = (value: string) => (isSealed(value) ? decrypt(value) : value);
+export const unsealOrNull = (value: string | null) => (value === null ? null : unseal(value));
+
+/**
+ * Pseudonyme stable et non réversible d'un identifiant (adresse IP, compte), dérivé de la clé de chiffrement :
+ * sans la clé, impossible de retrouver l'IP par force brute comme avec un simple SHA-256.
+ */
+export function pseudonym(value: string): string {
+  const ring = getKeyring();
+  return createHmac("sha256", ring.keys.get(ring.current)!).update(`pseudonym:${value}`).digest("base64url").slice(0, 32);
+}
 
 /** Hachage non réversible (identifiants de session anonymes, etc.). */
 export const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");

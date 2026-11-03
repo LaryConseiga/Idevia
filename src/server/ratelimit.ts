@@ -1,5 +1,6 @@
 import "server-only";
 import { Redis } from "@upstash/redis";
+import { pseudonym } from "@/server/crypto";
 import { env, isProd } from "@/server/env";
 
 /**
@@ -27,7 +28,8 @@ return {count, ttl}
 const memory = new Map<string, { count: number; resetAt: number }>();
 
 export async function consume(key: string, rule: Rule): Promise<Verdict> {
-  const fullKey = `rl:${key}`;
+  // Upstash ne voit ni adresse IP ni identifiant de compte : seulement le type de limite et un pseudonyme.
+  const fullKey = `rl:${key.split(":")[0]}:${pseudonym(key)}`;
   if (redis) {
     const [count, ttl] = await redis.eval<[string], [number, number]>(SCRIPT, [fullKey], [String(rule.window)]);
     return count <= rule.max ? { allowed: true, retryAfter: null } : { allowed: false, retryAfter: Math.max(ttl, 1) };

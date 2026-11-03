@@ -1,6 +1,6 @@
 import "server-only";
 import { and, asc, desc, eq, gte, ne, sql } from "drizzle-orm";
-import { decryptJson, encrypt, encryptJson } from "@/server/crypto";
+import { decryptJson, encrypt, encryptJson, seal, sealOrNull, unseal, unsealOrNull } from "@/server/crypto";
 import type { Tx } from "@/server/db/client";
 import { businessIdeas, fieldChecks, projectMarketSignals, projects, tasks, usageCounters, validations } from "@/server/db/schema";
 import type { IdeaContent } from "@/server/ideas/schemas";
@@ -57,13 +57,18 @@ export type StoredProject = {
 
 const isStale = (createdAt: Date) => Date.now() - createdAt.getTime() > RUNNING_TIMEOUT_MS;
 
+/** Les textes d'une étape (issus de l'idée, donc personnels) sont chiffrés ; dates et statut restent lisibles. */
+function sealTask<T extends { title: string; description?: string | null; expectedResult?: string | null }>(task: T): T {
+  return { ...task, title: seal(task.title), description: sealOrNull(task.description), expectedResult: sealOrNull(task.expectedResult) };
+}
+
 /**
  * Projet de l'idée choisie : réactivé s'il existe déjà (les tâches cochées sont conservées),
  * sinon créé avec les tâches du plan. Les autres projets de la personne sont archivés.
  */
 export async function activateProjectForIdea(tx: Tx, userId: string, ideaId: string, now = new Date()): Promise<string | null> {
   const [idea] = await tx
-    .select({ title: businessIdeas.title, contentEnc: businessIdeas.contentEnc })
+    .select({ contentEnc: businessIdeas.contentEnc })
     .from(businessIdeas)
     .where(and(eq(businessIdeas.id, ideaId), eq(businessIdeas.userId, userId)));
   if (!idea?.contentEnc) return null;
@@ -87,9 +92,9 @@ export async function activateProjectForIdea(tx: Tx, userId: string, ideaId: str
   const content = decryptJson<IdeaContent>(idea.contentEnc);
   const [project] = await tx
     .insert(projects)
-    .values({ userId, selectedIdeaId: ideaId, name: idea.title })
+    .values({ userId, selectedIdeaId: ideaId, name: seal(content.title) })
     .returning({ id: projects.id });
-  await tx.insert(tasks).values(tasksFromIdea(content, now).map((t) => ({ ...t, projectId: project.id, userId })));
+  await tx.insert(tasks).values(tasksFromIdea(content, now).map((t) => ({ ...sealTask(t), projectId: project.id, userId })));
   return project.id;
 }
 
@@ -129,27 +134,28 @@ export function getActiveProject(userId: string): Promise<StoredProject | null> 
         .orderBy(asc(validations.createdAt));
       // Insérées dans la même requête, elles ont le même horodatage : on suit l'ordre du rapport.
       const order = state.data.report.hypotheses.map((h) => h.hypothesis);
-      rows.sort((a, b) => order.indexOf(a.hypothesis) - order.indexOf(b.hypothesis));
-      hypotheses = rows.map((v) => ({
-        id: v.id,
-        hypothesis: v.hypothesis,
-        test: v.testDescription,
-        success: v.successCriteria,
-        status: v.status as HypothesisStatus,
-      }));
+      hypotheses = rows
+        .map((v) => ({
+          id: v.id,
+          hypothesis: unseal(v.hypothesis),
+          test: unsealOrNull(v.testDescription),
+          success: unsealOrNull(v.successCriteria),
+          status: v.status as HypothesisStatus,
+        }))
+        .sort((a, b) => order.indexOf(a.hypothesis) - order.indexOf(b.hypothesis));
     }
 
     return {
       id: project.id,
-      name: project.name,
+      name: unseal(project.name),
       ideaId: project.selectedIdeaId,
       createdAt: project.createdAt,
       tasks: taskRows.map((t) => ({
         id: t.id,
-        title: t.title,
+        title: unseal(t.title),
         period: t.period,
-        description: t.description,
-        expectedResult: t.expectedResult,
+        description: unsealOrNull(t.description),
+        expectedResult: unsealOrNull(t.expectedResult),
         dueDate: t.dueDate,
         status: t.status,
         sortOrder: t.sortOrder,
@@ -241,9 +247,9 @@ export function completeFieldCheck(userId: string, checkId: string, projectId: s
         projectId,
         userId,
         fieldCheckId: checkId,
-        hypothesis: h.hypothesis,
-        testDescription: h.test,
-        successCriteria: h.success,
+        hypothesis: seal(h.hypothesis),
+        testDescription: sealOrNull(h.test),
+        successCriteria: sealOrNull(h.success),
       })),
     );
     await tx
@@ -300,14 +306,14 @@ export function applyRefinement(userId: string, projectId: string, ideaId: strin
     await tx
       .update(businessIdeas)
       .set({
-        title: idea.title,
-        summary: idea.hook,
+        title: seal(idea.title),
+        summary: seal(idea.hook),
         whyYouEnc: encrypt(idea.whyYou),
         contentEnc: encryptJson(idea),
         details: { ...details, numbers: idea.numbers, version: Number(details.version ?? 1) + 1 },
       })
       .where(eq(businessIdeas.id, ideaId));
-    await tx.update(projects).set({ name: idea.title }).where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
+    await tx.update(projects).set({ name: seal(idea.title) }).where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
 
     const done = await tx
       .select({ sortOrder: tasks.sortOrder })
@@ -316,7 +322,7 @@ export function applyRefinement(userId: string, projectId: string, ideaId: strin
     await tx.delete(tasks).where(and(eq(tasks.projectId, projectId), eq(tasks.userId, userId), ne(tasks.status, "done")));
     const offset = done.reduce((max, t) => Math.max(max, t.sortOrder + 1), 0);
     await tx.insert(tasks).values(
-      tasksFromIdea(idea, now).map((t) => ({ ...t, sortOrder: t.sortOrder + offset, projectId, userId })),
+      tasksFromIdea(idea, now).map((t) => ({ ...sealTask(t), sortOrder: t.sortOrder + offset, projectId, userId })),
     );
 
     await tx

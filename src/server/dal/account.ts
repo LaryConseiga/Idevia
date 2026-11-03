@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, lte, sql } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
-import { decrypt } from "@/server/crypto";
+import { decrypt, isSealed } from "@/server/crypto";
 import {
   assistantConversations,
   assistantMessages,
@@ -46,12 +46,15 @@ const PRIVATE_TABLES: Record<string, PgTable & { userId: unknown }> = {
   liste_d_attente_pro: proWaitlist,
 };
 
-/** Colonne chiffrée (`xxxEnc`) → valeur en clair, objet JSON si c'en est un. */
+/**
+ * Colonne chiffrée (`xxxEnc`) → valeur en clair, objet JSON si c'en est un.
+ * Les colonnes chiffrées sans suffixe (titres, étapes, hypothèses) sont reconnues à leur format.
+ */
 function readable(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(row)) {
     if (!key.endsWith("Enc")) {
-      out[key] = value;
+      out[key] = typeof value === "string" && isSealed(value) ? decrypt(value) : value;
       continue;
     }
     const name = key.slice(0, -3);

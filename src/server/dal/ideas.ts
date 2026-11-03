@@ -1,6 +1,6 @@
 import "server-only";
 import { and, asc, desc, eq, gte, isNull, ne, sql } from "drizzle-orm";
-import { decrypt, encrypt, encryptJson, decryptJson } from "@/server/crypto";
+import { decrypt, encrypt, encryptJson, decryptJson, seal, unseal } from "@/server/crypto";
 import type { Tx } from "@/server/db/client";
 import { businessIdeas, ideaBatches, ideaReactions, projects, usageCounters } from "@/server/db/schema";
 import type { GeneratedIdea, PipelineTrace, ReserveIdea } from "@/server/ideas/pipeline";
@@ -61,8 +61,8 @@ function toIdea(row: typeof businessIdeas.$inferSelect): StoredIdea {
     id: row.id,
     batchId: row.batchId,
     rank: row.rank,
-    title: row.title,
-    summary: row.summary,
+    title: unseal(row.title),
+    summary: unseal(row.summary),
     score: details.score ?? null,
     breakdown: (row.scoreBreakdown as ScoreBreakdown) ?? null,
     whyYou: decrypt(row.whyYouEnc),
@@ -189,8 +189,8 @@ export function completeBatch(
         diagnosticId,
         batchId,
         rank: idea.rank,
-        title: idea.content.title,
-        summary: idea.content.hook,
+        title: seal(idea.content.title),
+        summary: seal(idea.content.hook),
         // Données non personnelles, utiles aux listes et aux statistiques.
         details: { score: idea.score, numbers: idea.content.numbers, family: idea.candidate.family, reach: idea.candidate.reach, nature: idea.candidate.nature },
         compatibilityScore: idea.score ?? 0,
@@ -353,8 +353,8 @@ export function applyIdeaChange(
     await tx
       .update(businessIdeas)
       .set({
-        title: input.content.title,
-        summary: input.content.hook,
+        title: seal(input.content.title),
+        summary: seal(input.content.hook),
         whyYouEnc: encrypt(input.content.whyYou),
         contentEnc: encryptJson({ ...input.content, changes: input.changes } satisfies StoredContent),
         details: next,

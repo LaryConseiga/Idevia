@@ -1,5 +1,6 @@
 import "server-only";
 import { eq, inArray, sql } from "drizzle-orm";
+import { unseal } from "@/server/crypto";
 import { profiles, projects } from "@/server/db/schema";
 import { withSystem, withUser } from "./context";
 
@@ -55,7 +56,8 @@ export function dueReminders(limit: number): Promise<DueReminder[]> {
       projectId: r.project_id,
       email: r.email,
       name: r.name,
-      task: r.task,
+      // Le titre de l'étape est chiffré en base : il n'est lu en clair qu'ici, au moment d'écrire l'email.
+      task: unseal(r.task),
       dueDate: r.due_date,
       overdue: r.overdue,
     }));

@@ -3,6 +3,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { exportUserData, purgeDueDeletions, requestDeletion } from "@/server/dal/account";
 import { appendExchange, getMemory, listMessages, setMemory } from "@/server/dal/assistant";
+import { isSealed } from "@/server/crypto";
 import { withSystem, withUser } from "@/server/dal/context";
 import { completeDiagnostic, createDiagnostic, updatePortrait } from "@/server/dal/diagnostics";
 import {
@@ -117,6 +118,24 @@ describe("isolation entre comptes", () => {
     expect((await getActiveProject(A))?.tasks.length).toBe(4);
     expect(await listMessages(A, projectId)).toHaveLength(2);
     expect(await getReaction(A, ideaId)).toEqual({ reason: "budget", comment: "Commentaire privé de A" });
+  });
+
+  it("les titres, le nom du projet et les étapes sont chiffrés en base, lisibles par A seulement", async () => {
+    const raw = await withSystem("test:isolation", async (tx) => ({
+      ideas: await tx.select({ title: businessIdeas.title, summary: businessIdeas.summary }).from(businessIdeas).where(eq(businessIdeas.userId, A)),
+      projects: await tx.select({ name: projects.name }).from(projects).where(eq(projects.userId, A)),
+      tasks: await tx.select({ title: tasks.title, description: tasks.description }).from(tasks).where(eq(tasks.userId, A)),
+    }));
+    const values = [
+      ...raw.ideas.flatMap((i) => [i.title, i.summary]),
+      ...raw.projects.map((p) => p.name),
+      ...raw.tasks.flatMap((t) => [t.title, t.description]),
+    ].filter((v): v is string => v !== null);
+    expect(values.length).toBeGreaterThan(10);
+    expect(values.every(isSealed)).toBe(true);
+    const project = await getActiveProject(A);
+    expect(project?.name).toBe("Idée 1");
+    expect(project?.tasks[0].title).toBe("Ta première action");
   });
 
   it("B ne lit ni ne remplace la réaction de A", async () => {

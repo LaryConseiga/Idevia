@@ -1,6 +1,6 @@
 import "server-only";
 import { and, asc, desc, eq, inArray, isNull, lt, notInArray, sql } from "drizzle-orm";
-import { decryptJson, encryptJson } from "@/server/crypto";
+import { decryptJson, encryptJson, seal } from "@/server/crypto";
 import { countryByCode } from "@/lib/countries";
 import type { Tx } from "@/server/db/client";
 import { diagnostics, diagnosticTurns, profiles } from "@/server/db/schema";
@@ -194,7 +194,8 @@ async function syncProfile(tx: Tx, userId: string, state: ProfileState) {
     .update(profiles)
     .set({
       ...(country ? { country: country.code, currency: country.currency } : {}),
-      ...(market?.city ? { city: market.city } : {}),
+      // La ville, assez précise pour aider à identifier quelqu'un, est chiffrée comme le reste du profil.
+      ...(market?.city ? { city: seal(market.city) } : {}),
     })
     .where(eq(profiles.userId, userId));
 }

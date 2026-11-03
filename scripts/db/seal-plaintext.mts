@@ -1,6 +1,6 @@
 /**
  * Chiffre les textes personnels encore stockés en clair dans des colonnes devenues chiffrées
- * (titres et accroches d'idées, nom du projet, étapes du plan, hypothèses), et remplace les adresses IP
+ * (titres et accroches d'idées, nom du projet, étapes du plan, hypothèses, ville du profil), et remplace les adresses IP
  * des sessions par leur pseudonyme. Sans effet sur ce qui est déjà chiffré : on peut le relancer sans risque.
  *
  * Usage : npm run db:seal            (affiche ce qui serait chiffré)
@@ -9,11 +9,12 @@
 import pg from "pg";
 import { isSealed, pseudonym, seal } from "@/server/crypto";
 
-const COLUMNS: Record<string, string[]> = {
-  business_ideas: ["title", "summary"],
-  projects: ["name"],
-  tasks: ["title", "description", "expected_result"],
-  validations: ["hypothesis", "test_description", "success_criteria"],
+const COLUMNS: Record<string, { key: string; columns: string[] }> = {
+  business_ideas: { key: "id", columns: ["title", "summary"] },
+  projects: { key: "id", columns: ["name"] },
+  tasks: { key: "id", columns: ["title", "description", "expected_result"] },
+  validations: { key: "id", columns: ["hypothesis", "test_description", "success_criteria"] },
+  profiles: { key: "user_id", columns: ["city"] },
 };
 const apply = process.argv.includes("--apply");
 const url = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
@@ -23,8 +24,8 @@ const client = new pg.Client({ connectionString: url.replace("sslmode=require", 
 await client.connect();
 try {
   await client.query("begin");
-  for (const [table, columns] of Object.entries(COLUMNS)) {
-    const { rows } = await client.query<Record<string, string | null>>(`select id, ${columns.join(", ")} from ${table}`);
+  for (const [table, { key, columns }] of Object.entries(COLUMNS)) {
+    const { rows } = await client.query<Record<string, string | null>>(`select ${key} as id, ${columns.join(", ")} from ${table}`);
     let changed = 0;
     for (const row of rows) {
       const updates = columns.filter((c) => row[c] !== null && !isSealed(row[c]!));
@@ -32,7 +33,7 @@ try {
       changed++;
       if (apply) {
         const set = updates.map((c, i) => `${c} = $${i + 2}`).join(", ");
-        await client.query(`update ${table} set ${set} where id = $1`, [row.id, ...updates.map((c) => seal(row[c]!))]);
+        await client.query(`update ${table} set ${set} where ${key} = $1`, [row.id, ...updates.map((c) => seal(row[c]!))]);
       }
     }
     console.log(`${table} : ${changed} ligne(s) ${apply ? "chiffrée(s)" : "à chiffrer"} sur ${rows.length}`);

@@ -1,8 +1,8 @@
 import "server-only";
-import { and, asc, desc, eq, gte, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, ne, sql } from "drizzle-orm";
 import { decrypt, encrypt, encryptJson, decryptJson } from "@/server/crypto";
 import type { Tx } from "@/server/db/client";
-import { businessIdeas, ideaBatches, ideaReactions } from "@/server/db/schema";
+import { businessIdeas, ideaBatches, ideaReactions, projects, usageCounters } from "@/server/db/schema";
 import type { GeneratedIdea, PipelineTrace, ReserveIdea } from "@/server/ideas/pipeline";
 import type { IdeaContent, Nature, Reach, ScoreBreakdown } from "@/server/ideas/schemas";
 import type { IdeaReactionReason, ReactionView } from "@/lib/idea-reactions";
@@ -14,6 +14,7 @@ const RUNNING_TIMEOUT_MS = 6 * 60 * 1000;
 
 export type StoredIdea = {
   id: string;
+  batchId: string | null;
   rank: number;
   title: string;
   summary: string;
@@ -25,7 +26,14 @@ export type StoredIdea = {
   numbers: IdeaContent["numbers"] | null;
   reach: Reach | null;
   nature: Nature | null;
+  family: string | null;
+  /** Remplacements et ajustements déjà faits sur cette idée, et ce qui a changé la dernière fois. */
+  changeCount: number;
+  changes: string | null;
 };
+
+/** Fiche chiffrée : le contenu rédigé, plus la note « ce qui a changé » après un remplacement ou un ajustement. */
+type StoredContent = IdeaContent & { changes?: string };
 
 export type BatchState =
   | { status: "none" }
@@ -36,21 +44,36 @@ export type BatchState =
 /** Réactions d'un lot : par identifiant d'idée, et `batch` pour la réaction à tout le lot. */
 export type StoredReactions = { byIdea: Record<string, ReactionView>; batch: ReactionView | null };
 
+type Details = {
+  score: number | null;
+  numbers?: IdeaContent["numbers"];
+  reach?: Reach;
+  nature?: Nature;
+  family?: string;
+  changes?: number;
+};
+
 function toIdea(row: typeof businessIdeas.$inferSelect): StoredIdea {
-  const details = row.details as { score: number | null; numbers?: IdeaContent["numbers"]; reach?: Reach; nature?: Nature };
+  const details = row.details as Details;
+  const stored = row.contentEnc ? decryptJson<StoredContent>(row.contentEnc) : null;
+  const { changes, ...content } = stored ?? {};
   return {
     id: row.id,
+    batchId: row.batchId,
     rank: row.rank,
     title: row.title,
     summary: row.summary,
     score: details.score ?? null,
     breakdown: (row.scoreBreakdown as ScoreBreakdown) ?? null,
     whyYou: decrypt(row.whyYouEnc),
-    content: row.contentEnc ? decryptJson<IdeaContent>(row.contentEnc) : null,
+    content: stored ? (content as IdeaContent) : null,
     status: row.status,
     numbers: details.numbers ?? null,
     reach: details.reach ?? null,
     nature: details.nature ?? null,
+    family: details.family ?? null,
+    changeCount: details.changes ?? 0,
+    changes: changes ?? null,
   };
 }
 
@@ -235,6 +258,119 @@ export function saveReaction(
       .values({ userId, batchId, ideaId: input.ideaId, ...values })
       .onConflictDoUpdate({ target: [ideaReactions.batchId, ideaReactions.ideaId], set: { ...values, updatedAt: sql`now()` } });
     return true;
+  });
+}
+
+// ---------------------------------------------------------------- Remplacer ou ajuster une idée avant le choix
+
+const CHANGE_FEATURE = "idea_change";
+const period = () => new Date().toISOString().slice(0, 7);
+
+/** Idées en réserve du lot : notées mais pas rédigées, de la mieux à la moins bien notée. */
+export function getReserve(userId: string, batchId: string): Promise<ReserveIdea[]> {
+  return withUser(userId, async (tx) => {
+    const [batch] = await tx
+      .select({ reserveEnc: ideaBatches.reserveEnc })
+      .from(ideaBatches)
+      .where(and(eq(ideaBatches.id, batchId), eq(ideaBatches.userId, userId)));
+    return batch?.reserveEnc ? decryptJson<ReserveIdea[]>(batch.reserveEnc) : [];
+  });
+}
+
+/** La réaction « aucune de ces idées » ne vaut plus une fois les idées remplacées. */
+export function clearBatchReaction(userId: string, batchId: string) {
+  return withUser(userId, async (tx) => {
+    await tx.delete(ideaReactions).where(and(eq(ideaReactions.batchId, batchId), eq(ideaReactions.userId, userId), isNull(ideaReactions.ideaId)));
+  });
+}
+
+export function changesThisMonth(userId: string): Promise<number> {
+  return withUser(userId, async (tx) => {
+    const [row] = await tx
+      .select({ used: usageCounters.used })
+      .from(usageCounters)
+      .where(and(eq(usageCounters.userId, userId), eq(usageCounters.period, period()), eq(usageCounters.feature, CHANGE_FEATURE)));
+    return row?.used ?? 0;
+  });
+}
+
+export type ChangeOutcome = "ok" | "quota" | "limit" | "unavailable" | "conflict";
+
+/**
+ * Remplace le contenu d'une idée (même place dans le classement) après un remplacement ou un ajustement.
+ * `fromReserve` : l'idée de la réserve utilisée, retirée de la réserve dans la même transaction.
+ * La réaction à l'ancienne version est effacée : la personne réagit à la nouvelle.
+ */
+export function applyIdeaChange(
+  userId: string,
+  input: {
+    ideaId: string;
+    content: IdeaContent;
+    changes: string;
+    fromReserve: ReserveIdea | null;
+    monthlyQuota: number;
+    maxPerIdea: number;
+  },
+): Promise<ChangeOutcome> {
+  return withUser(userId, async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`idea-change:${userId}`}))`);
+    const [counter] = await tx
+      .select({ used: usageCounters.used })
+      .from(usageCounters)
+      .where(and(eq(usageCounters.userId, userId), eq(usageCounters.period, period()), eq(usageCounters.feature, CHANGE_FEATURE)));
+    if ((counter?.used ?? 0) >= input.monthlyQuota) return "quota";
+
+    const [row] = await tx
+      .select()
+      .from(businessIdeas)
+      .where(and(eq(businessIdeas.id, input.ideaId), eq(businessIdeas.userId, userId)));
+    if (!row?.batchId || row.status === "selected") return "unavailable";
+    // Une idée qui a déjà porté un projet (même archivé) garde son contenu : le projet s'y rattache.
+    const [linked] = await tx.select({ id: projects.id }).from(projects).where(eq(projects.selectedIdeaId, row.id)).limit(1);
+    if (linked) return "unavailable";
+    const details = row.details as Details;
+    if ((details.changes ?? 0) >= input.maxPerIdea) return "limit";
+
+    let next: Details = { ...details, numbers: input.content.numbers, changes: (details.changes ?? 0) + 1 };
+    let score = row.compatibilityScore;
+    let breakdown = row.scoreBreakdown;
+    if (input.fromReserve) {
+      const [batch] = await tx.select({ reserveEnc: ideaBatches.reserveEnc }).from(ideaBatches).where(eq(ideaBatches.id, row.batchId));
+      const reserve = batch?.reserveEnc ? decryptJson<ReserveIdea[]>(batch.reserveEnc) : [];
+      const index = reserve.findIndex((r) => r.candidate.title === input.fromReserve!.candidate.title);
+      if (index === -1) return "conflict";
+      reserve.splice(index, 1);
+      await tx
+        .update(ideaBatches)
+        .set({ reserveEnc: reserve.length ? encryptJson(reserve) : null })
+        .where(eq(ideaBatches.id, row.batchId));
+      const { candidate } = input.fromReserve;
+      next = { ...next, score: input.fromReserve.score, family: candidate.family, reach: candidate.reach, nature: candidate.nature };
+      score = input.fromReserve.score ?? 0;
+      breakdown = input.fromReserve.breakdown ?? {};
+    }
+
+    await tx
+      .update(businessIdeas)
+      .set({
+        title: input.content.title,
+        summary: input.content.hook,
+        whyYouEnc: encrypt(input.content.whyYou),
+        contentEnc: encryptJson({ ...input.content, changes: input.changes } satisfies StoredContent),
+        details: next,
+        compatibilityScore: score,
+        scoreBreakdown: breakdown,
+      })
+      .where(eq(businessIdeas.id, row.id));
+    await tx.delete(ideaReactions).where(and(eq(ideaReactions.ideaId, row.id), eq(ideaReactions.userId, userId)));
+    await tx
+      .insert(usageCounters)
+      .values({ userId, period: period(), feature: CHANGE_FEATURE, used: 1 })
+      .onConflictDoUpdate({
+        target: [usageCounters.userId, usageCounters.period, usageCounters.feature],
+        set: { used: sql`${usageCounters.used} + 1` },
+      });
+    return "ok";
   });
 }
 

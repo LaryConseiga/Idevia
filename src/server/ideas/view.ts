@@ -15,6 +15,10 @@ export type IdeaCardView =
       nature: string | null;
       selected: boolean;
       reaction: ReactionView | null;
+      /** Version de la fiche (0 = d'origine) et ce qui a changé la dernière fois. */
+      version: number;
+      changes: string | null;
+      canChange: boolean;
     }
   | { locked: true; id: string; rank: number; score: number | null };
 
@@ -28,11 +32,23 @@ export type IdeaDetailView = {
   nature: string | null;
   selected: boolean;
   reaction: ReactionView | null;
+  version: number;
+  changes: string | null;
+  canChange: boolean;
 };
+
+/** Possibilités de changer une idée avant de la choisir : quota du mois et idées encore en réserve. */
+export type ChangeAllowance = { changesLeft: number; reserveLeft: number };
 
 export type IdeasState =
   | { status: "no_diagnostic" }
   | { status: "none"; quotaLeft: number }
   | { status: "running"; startedAt: string }
   | { status: "failed"; quotaLeft: number; message: string }
-  | { status: "ready"; ideas: IdeaCardView[]; quotaLeft: number; batchReaction: ReactionView | null };
+  | {
+      status: "ready";
+      ideas: IdeaCardView[];
+      quotaLeft: number;
+      batchReaction: ReactionView | null;
+      allowance: ChangeAllowance;
+    };

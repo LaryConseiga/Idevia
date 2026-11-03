@@ -198,12 +198,27 @@ Puis Idevia demande : **« Tu te vois commencer par ça cette semaine ? »**
 
 ## Ordre de réalisation
 
-1. **Réactions** : table `idea_reactions`, boutons de réaction, texte libre, répartition des raisons dans l'admin. Aucun appel à un modèle. *En cours.*
-2. **Réserve** : les idées écartées sont gardées, chiffrées, avec chaque nouveau lot. Aucun appel à un modèle. *En cours.*
-3. **Remplacement et ajustement** : rédaction à la demande d'une idée de la réserve, ou de l'idée ajustée avec `refine.ts`. Un seul appel par réaction. Il faut d'abord voir une à deux semaines de vraies réactions pour calibrer les limites.
+1. **Réactions** : table `idea_reactions`, boutons de réaction, texte libre, répartition des raisons dans l'admin. Aucun appel à un modèle. *Fait le 03/11/2026.*
+2. **Réserve** : les idées écartées sont gardées, chiffrées, avec chaque nouveau lot. Aucun appel à un modèle. *Fait le 03/11/2026.*
+3. **Remplacement et ajustement** : rédaction à la demande d'une idée de la réserve, ou de l'idée ajustée avec `refine.ts`. Un seul appel par réaction. *Fait le 03/11/2026* (voir ci-dessous).
 4. **Validation** : écran de confirmation (budget, temps, premier pas) avant `chooseIdea`.
 5. **Nouvelle génération** avec les réactions, en dernier recours.
 6. **Exploration des préférences** : seulement si les réactions le justifient (voir l'étape 2).
+
+### Étape 3 telle que réalisée (03/11/2026)
+
+- **Après une réaction négative**, la carte et la fiche de l'idée proposent :
+  - « L'adapter à un petit budget » (`budget`), « L'adapter sans ces compétences » (`skills`) ou « La rapprocher de moi » (`not_for_me`). La même idée est réécrite avec `refine.ts` (`stage: "choice"`), à partir de la réaction et de la précision libre ;
+  - « Une autre idée à la place », pour toutes les réactions négatives. La meilleure idée de la réserve d'une autre famille est rédigée à la même place dans le classement. Pour `domain`, elle est obligatoirement d'une autre nature.
+- **« Aucune de ces idées ne me correspond »** propose « Me proposer d'autres idées ». Les idées encore modifiables sont remplacées par la réserve, les moins bien classées d'abord, en parallèle.
+- **Après chaque changement**, la fiche affiche « Ce qui a changé ». La réaction à l'ancienne version est effacée, et l'idée utilisée est retirée de la réserve.
+- **Limites** :
+  - 2 changements au plus par idée ;
+  - `IDEA_CHANGES_MONTHLY_QUOTA` changements par mois, 12 par défaut ;
+  - jamais sur l'idée choisie ni sur une idée qui a porté un projet.
+- **Modèles** : gemini-flash-lite d'abord, puis groq, puis Gemini Flash (`CHANGE_CHAIN`). Environ 6 à 30 secondes par changement.
+- **Admin** : le nombre d'idées remplacées ou ajustées s'affiche dans « Activité ».
+- **Code** : [`src/server/ideas/changes.ts`](../src/server/ideas/changes.ts) contient la partie pure ; `replaceIdea`, `adjustIdea` et `replaceAllIdeas` sont dans `service.ts`, et `applyIdeaChange` dans le DAL.
 
 ## Questions tranchées
 

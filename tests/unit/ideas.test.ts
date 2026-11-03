@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { emptyProfile } from "@/server/diagnostic/profile";
 import { isLocked } from "@/server/ideas/access";
+import { adjustmentFeedback, pickFromReserve } from "@/server/ideas/changes";
 import { dedupe, IdeasPipelineError, runIdeasPipeline, select, weightedScore } from "@/server/ideas/pipeline";
 import { stripMarkdown, type Candidate, type IdeaContent, type Judgement } from "@/server/ideas/schemas";
 
@@ -206,6 +207,44 @@ describe("orchestration complète", () => {
     await expect(
       runIdeasPipeline({ state: emptyProfile(), portrait: null, generate: fakeGenerate({ writerFails: true }) as never, userId: "u1" }),
     ).rejects.toBeInstanceOf(IdeasPipelineError);
+  });
+});
+
+describe("changer une idée avant le choix", () => {
+  const reserved = (title: string, family: string, nature: Candidate["nature"]) => ({
+    candidate: candidate(title, family, "local", nature),
+    score: 60,
+    breakdown: null,
+    judgement: null,
+  });
+  const reserve = [
+    reserved("Traiteur de quartier", "repas", "food"),
+    reserved("Jus pressés", "boissons", "food"),
+    reserved("Cours en ligne", "formation", "digital"),
+    reserved("Potager urbain", "maraichage", "agriculture"),
+  ];
+
+  it("domaine refusé : jamais la même nature, quitte à ne rien proposer", () => {
+    const [pick] = pickFromReserve(reserve, { count: 1, avoidNatures: ["food"], strictNatures: true });
+    expect(pick.candidate.title).toBe("Cours en ligne");
+    expect(pickFromReserve(reserve.slice(0, 2), { count: 1, avoidNatures: ["food"], strictNatures: true })).toEqual([]);
+  });
+
+  it("préfère d'autres familles et d'autres natures, puis accepte une nature déjà vue", () => {
+    const picks = pickFromReserve(reserve, { count: 3, avoidFamilies: ["formation"], avoidNatures: ["agriculture"] });
+    expect(picks.map((p) => p.candidate.title)).toEqual(["Traiteur de quartier", "Jus pressés", "Potager urbain"]);
+  });
+
+  it("ne reprend jamais une famille déjà proposée", () => {
+    const picks = pickFromReserve(reserve, { count: 4, avoidFamilies: ["Repas "] });
+    expect(picks.map((p) => p.candidate.family)).not.toContain("repas");
+    expect(picks).toHaveLength(3);
+  });
+
+  it("l'ajustement dit au modèle ce qui bloque, avec la précision de la personne", () => {
+    expect(adjustmentFeedback("budget", "Je n'ai que 50 €.")).toMatch(/beaucoup moins d'argent[\s\S]*Précision : Je n'ai que 50 €\./);
+    expect(adjustmentFeedback("skills", null)).toMatch(/compétences que je n'ai pas/);
+    expect(adjustmentFeedback("domain", null)).toBeNull();
   });
 });
 

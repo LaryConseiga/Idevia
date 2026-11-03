@@ -8,9 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { requireUser } from "@/server/dal/session";
 import { getIdeaDetail } from "@/server/ideas/service";
+import { ChangedNote } from "../ideas-view";
 import { ChooseIdea } from "./choose-idea";
 
 export const metadata: Metadata = { title: "Ton idée" };
+
+// Remplacer ou ajuster l'idée attend la rédaction par un modèle : on lui laisse le temps.
+export const maxDuration = 300;
 
 export default async function IdeaPage({ params }: PageProps<"/idees/[id]">) {
   const { id } = await params;
@@ -24,9 +28,12 @@ export default async function IdeaPage({ params }: PageProps<"/idees/[id]">) {
     <IdeaDetail
       idea={idea}
       back={
-        <Link href="/idees" className="inline-flex min-h-10 items-center gap-1.5 self-start text-sm font-medium text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" aria-hidden /> Mes 3 idées
-        </Link>
+        <>
+          <Link href="/idees" className="inline-flex min-h-10 items-center gap-1.5 self-start text-sm font-medium text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="size-4" aria-hidden /> Mes 3 idées
+          </Link>
+          {idea.changes && <ChangedNote text={idea.changes} />}
+        </>
       }
       footer={
         <>
@@ -35,7 +42,12 @@ export default async function IdeaPage({ params }: PageProps<"/idees/[id]">) {
               <h2 id="reaction" className="font-semibold">
                 Pourrais-tu réellement envisager de la développer ?
               </h2>
-              <IdeaReaction ideaId={idea.id} initial={idea.reaction} />
+              <IdeaReaction
+                key={idea.version}
+                ideaId={idea.id}
+                initial={idea.reaction}
+                options={{ ...idea.allowance, canChange: idea.canChange }}
+              />
             </section>
           )}
           <ChooseIdea ideaId={idea.id} selected={idea.selected} />

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { scrubPersonalData } from "@/server/ai/scrub";
 import type { createRouter } from "@/server/ai/router";
 import { WRITER_CHAINS } from "@/server/ai/router";
+import type { ProviderId } from "@/server/ai/types";
 import type { ProfileState } from "@/server/diagnostic/profile";
 import { SAFETY, where } from "./prompts";
 import { ideaContentSchema, stripMarkdown, type IdeaContent } from "./schemas";
@@ -32,9 +33,15 @@ export function refinePrompt(input: {
   done: string[];
   field: string | null;
   memory: string[];
+  /** `choice` : l'idée n'est pas encore choisie, la personne dit ce qui l'empêche de se voir la faire. */
+  stage?: "project" | "choice";
 }) {
+  const situation =
+    input.stage === "choice"
+      ? `hésite sur une idée de business qu'on lui a proposée. Elle te dit ce qui l'empêche de se voir la faire.`
+      : `a choisi une idée de business et a commencé à avancer. Elle te dit ce qui ne lui convient pas ou ce qu'elle a appris.`;
   const system = `Tu es un coach d'entrepreneurs francophones et un excellent rédacteur. Une personne ${where(input.state)}
-a choisi une idée de business et a commencé à avancer. Elle te dit ce qui ne lui convient pas ou ce qu'elle a appris.
+${situation}
 Ta mission : REPENSER et APPROFONDIR son idée à partir de ce retour, sans repartir de zéro.
 
 Règles :
@@ -76,10 +83,12 @@ ${scrubPersonalData(input.feedback)}
   return { system, user };
 }
 
-export async function refineIdea(input: Parameters<typeof refinePrompt>[0] & { generate: Generate; userId: string }): Promise<Refinement | null> {
+export async function refineIdea(
+  input: Parameters<typeof refinePrompt>[0] & { generate: Generate; userId: string; chain?: ProviderId[] },
+): Promise<Refinement | null> {
   const result = await input.generate({
     task: "plan",
-    chain: WRITER_CHAINS[0],
+    chain: input.chain ?? WRITER_CHAINS[0],
     ...refinePrompt(input),
     schema: refineSchema,
     userId: input.userId,

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { ReactionView } from "@/lib/idea-reactions";
-import type { IdeaCardView, IdeasState } from "@/server/ideas/view";
+import type { ChangeAllowance, IdeaCardView, IdeasState } from "@/server/ideas/view";
 import { generateIdeasAction, joinWaitlistAction } from "./actions";
 
 export function IdeasView({ state }: { state: IdeasState }) {
@@ -24,7 +24,7 @@ export function IdeasView({ state }: { state: IdeasState }) {
     case "failed":
       return <Start quotaLeft={state.quotaLeft} failure={state.message} />;
     case "ready":
-      return <Ready ideas={state.ideas} quotaLeft={state.quotaLeft} batchReaction={state.batchReaction} />;
+      return <Ready ideas={state.ideas} quotaLeft={state.quotaLeft} batchReaction={state.batchReaction} allowance={state.allowance} />;
   }
 }
 
@@ -180,7 +180,17 @@ function Running({ startedAt }: { startedAt: string }) {
   );
 }
 
-function Ready({ ideas, quotaLeft, batchReaction }: { ideas: IdeaCardView[]; quotaLeft: number; batchReaction: ReactionView | null }) {
+function Ready({
+  ideas,
+  quotaLeft,
+  batchReaction,
+  allowance,
+}: {
+  ideas: IdeaCardView[];
+  quotaLeft: number;
+  batchReaction: ReactionView | null;
+  allowance: ChangeAllowance;
+}) {
   const { generate, pending, error } = useGenerate();
   const [best, ...others] = ideas;
   return (
@@ -198,15 +208,20 @@ function Ready({ ideas, quotaLeft, batchReaction }: { ideas: IdeaCardView[]; quo
         </p>
       </header>
 
-      {best && <IdeaCard idea={best} featured />}
+      {best && <IdeaCard idea={best} allowance={allowance} featured />}
       <div className="grid gap-4 md:grid-cols-2">
         {others.map((idea) => (
-          <IdeaCard key={idea.id} idea={idea} />
+          <IdeaCard key={idea.id} idea={idea} allowance={allowance} />
         ))}
       </div>
 
       <div className="flex flex-col gap-4 border-t border-border pt-6">
-        <IdeaReaction ideaId={null} initial={batchReaction} />
+        <IdeaReaction
+          key={ideas.map((i) => (i.locked ? i.id : `${i.id}:${i.version}`)).join()}
+          ideaId={null}
+          initial={batchReaction}
+          options={{ ...allowance, canChange: true }}
+        />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
             {quotaLeft > 0 ? `Il te reste ${quotaLeft} nouvelle${quotaLeft > 1 ? "s" : ""} génération${quotaLeft > 1 ? "s" : ""} ce mois-ci.` : "Tes nouvelles générations reviennent le mois prochain."}
@@ -221,7 +236,7 @@ function Ready({ ideas, quotaLeft, batchReaction }: { ideas: IdeaCardView[]; quo
   );
 }
 
-function IdeaCard({ idea, featured = false }: { idea: IdeaCardView; featured?: boolean }) {
+function IdeaCard({ idea, allowance, featured = false }: { idea: IdeaCardView; allowance: ChangeAllowance; featured?: boolean }) {
   if (idea.locked) return <LockedCard rank={idea.rank} score={idea.score} featured={featured} />;
   return (
     <Card className={cn("relative flex flex-col gap-5 p-5 sm:p-7", featured && "border-primary/40 ring-1 ring-primary/20")}>
@@ -254,6 +269,7 @@ function IdeaCard({ idea, featured = false }: { idea: IdeaCardView; featured?: b
         </div>
         {idea.score !== null && <ScoreRing score={idea.score} size={featured ? "lg" : "md"} />}
       </div>
+      {idea.changes && <ChangedNote text={idea.changes} />}
       <p className={cn("leading-relaxed", featured ? "text-lg" : "text-muted-foreground")}>{idea.hook}</p>
 
       {idea.numbers && (
@@ -280,8 +296,29 @@ function IdeaCard({ idea, featured = false }: { idea: IdeaCardView; featured?: b
         </Link>
       </Button>
 
-      {!idea.selected && <IdeaReaction ideaId={idea.id} initial={idea.reaction} className="border-t border-border pt-5" />}
+      {!idea.selected && (
+        <IdeaReaction
+          key={idea.version}
+          ideaId={idea.id}
+          initial={idea.reaction}
+          options={{ ...allowance, canChange: idea.canChange }}
+          className="border-t border-border pt-5"
+        />
+      )}
     </Card>
+  );
+}
+
+/** Après un remplacement ou un ajustement : ce qui a changé, en une ou deux phrases. */
+export function ChangedNote({ text }: { text: string }) {
+  return (
+    <p className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary-soft/40 px-3.5 py-2.5 text-sm leading-relaxed">
+      <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+      <span>
+        <span className="font-semibold">Ce qui a changé : </span>
+        {text}
+      </span>
+    </p>
   );
 }
 

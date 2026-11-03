@@ -47,6 +47,8 @@ export function getOverview(): Promise<Overview> {
         (select count(*) from tasks where status = 'done') as a_tasks,
         (select count(*) from field_checks where status = 'ready' and created_at >= date_trunc('month', now())) as a_field_m,
         (select count(*) from field_checks where status = 'ready') as a_field,
+        (select coalesce(sum(used), 0) from usage_counters where feature = 'idea_change' and period = to_char(now(), 'YYYY-MM')) as a_change_m,
+        (select coalesce(sum(used), 0) from usage_counters where feature = 'idea_change') as a_change,
         (select count(*) from assistant_messages where role = 'user' and created_at >= date_trunc('month', now())) as a_coach_m,
         (select count(*) from assistant_messages where role = 'user') as a_coach,
         (select count(*) from diagnostics where user_id is null) as anon_diag,
@@ -67,6 +69,7 @@ export function getOverview(): Promise<Overview> {
       activity: [
         { label: "Diagnostics terminés", month: n(r.a_diag_m), total: n(r.a_diag) },
         { label: "Générations d'idées", month: n(r.a_ideas_m), total: n(r.a_ideas) },
+        { label: "Idées remplacées ou ajustées", month: n(r.a_change_m), total: n(r.a_change) },
         { label: "Étapes faites", month: n(r.a_tasks_m), total: n(r.a_tasks) },
         { label: "Vérifications terrain", month: n(r.a_field_m), total: n(r.a_field) },
         { label: "Messages au coach", month: n(r.a_coach_m), total: n(r.a_coach) },

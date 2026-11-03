@@ -5,7 +5,17 @@ import { exportUserData, purgeDueDeletions, requestDeletion } from "@/server/dal
 import { appendExchange, getMemory, listMessages, setMemory } from "@/server/dal/assistant";
 import { withSystem, withUser } from "@/server/dal/context";
 import { completeDiagnostic, createDiagnostic, updatePortrait } from "@/server/dal/diagnostics";
-import { completeBatch, getIdea, getLatestBatch, getReaction, saveReaction, selectIdea, startBatch } from "@/server/dal/ideas";
+import {
+  applyIdeaChange,
+  completeBatch,
+  getIdea,
+  getLatestBatch,
+  getReaction,
+  getReserve,
+  saveReaction,
+  selectIdea,
+  startBatch,
+} from "@/server/dal/ideas";
 import { getActiveProject, setTaskDone } from "@/server/dal/projects";
 import { db } from "@/server/db/client";
 import { businessIdeas, deletionRequests, profiles, projects, tasks } from "@/server/db/schema";
@@ -23,6 +33,8 @@ import type { GeneratedIdea } from "@/server/ideas/pipeline";
 const A = `iso-a-${randomUUID()}`;
 const B = `iso-b-${randomUUID()}`;
 let ideaId = "";
+let otherIdeaId = "";
+let batchId = "";
 let projectId = "";
 let taskId = "";
 
@@ -73,13 +85,18 @@ beforeAll(async () => {
   await completeDiagnostic(owner, diagnosticId, state);
   const started = await startBatch(A, diagnosticId, 10);
   if (started.kind !== "started") throw new Error(started.kind);
-  const reserve = [{ candidate: { ...idea(4).candidate, whyFit: "Réserve secrète de A" }, score: 70, breakdown: null, judgement: null }];
+  const reserve = [
+    { candidate: { ...idea(4).candidate, whyFit: "Réserve secrète de A" }, score: 70, breakdown: null, judgement: null },
+    { candidate: idea(5).candidate, score: 65, breakdown: null, judgement: null },
+  ];
   await completeBatch(A, started.batchId, diagnosticId, [idea(1), idea(2), idea(3)], reserve, {
     generators: [], judge: null, writers: [], candidates: 3, eliminated: 0, durationMs: 0,
   });
   const batch = await getLatestBatch(A);
   if (batch.status !== "ready") throw new Error("lot");
   ideaId = batch.ideas[0].id;
+  otherIdeaId = batch.ideas[1].id;
+  batchId = batch.batchId;
   await saveReaction(A, { ideaId, reason: "budget", comment: "Commentaire privé de A" });
   await selectIdea(A, ideaId);
   const project = await getActiveProject(A);
@@ -106,6 +123,22 @@ describe("isolation entre comptes", () => {
     expect(await getReaction(B, ideaId)).toBeNull();
     expect(await saveReaction(B, { ideaId, reason: "domain", comment: "Écrit par B" })).toBe(false);
     expect((await getReaction(A, ideaId))?.reason).toBe("budget");
+  });
+
+  it("B ne lit pas la réserve de A et ne peut pas changer ses idées ; A, si", async () => {
+    expect(await getReserve(B, batchId)).toEqual([]);
+    const reserved = (await getReserve(A, batchId))[1];
+    const change = { content: idea(5).content, changes: "Remplacée.", fromReserve: reserved, monthlyQuota: 5, maxPerIdea: 2 };
+    expect(await applyIdeaChange(B, { ideaId: otherIdeaId, ...change })).toBe("unavailable");
+    expect((await getIdea(A, otherIdeaId))?.title).toBe("Idée 2");
+    // L'idée choisie (et rattachée à un projet) ne se change pas.
+    expect(await applyIdeaChange(A, { ideaId, ...change })).toBe("unavailable");
+    expect(await applyIdeaChange(A, { ideaId: otherIdeaId, ...change })).toBe("ok");
+    const changed = await getIdea(A, otherIdeaId);
+    expect([changed?.title, changed?.changes, changed?.changeCount, changed?.rank]).toEqual(["Idée 5", "Remplacée.", 1, 2]);
+    expect((await getReserve(A, batchId)).map((r) => r.candidate.title)).toEqual(["Idée 4"]);
+    // L'idée de réserve est consommée : la réutiliser échoue.
+    expect(await applyIdeaChange(A, { ideaId: otherIdeaId, ...change })).toBe("conflict");
   });
 
   it("B ne lit rien de A, même avec les bons identifiants", async () => {
